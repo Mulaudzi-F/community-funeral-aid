@@ -8,6 +8,9 @@ const {
   getPendingReports,
   getCommunityFinances,
   sendSystemNotification,
+  getAdminStats,
+  getRecentReports,
+  getAdminActivity,
 } = require("../controllers/adminController");
 const { protect, admin } = require("../middleware/auth");
 
@@ -22,5 +25,9 @@ router.get("/death-reports/pending", getPendingReports);
 router.get("/finances", getCommunityFinances);
 
 router.post("/notify", sendSystemNotification);
+
+router.get("/stats", getAdminStats);
+router.get("/recent-reports", getRecentReports);
+router.get("/activity", getAdminActivity);
 
 module.exports = router;
