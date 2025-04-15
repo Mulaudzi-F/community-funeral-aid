@@ -86,7 +86,7 @@ exports.addBeneficiary = async (req, res) => {
       idNumber,
       dob,
       relationship,
-      accountHolder: req.user._id,
+     accountHolder: req.user._id,
     });
 
     res.status(201).json({ success: true, data: beneficiary });
