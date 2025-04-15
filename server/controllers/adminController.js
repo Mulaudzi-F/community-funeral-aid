@@ -223,3 +223,180 @@ exports.sendSystemNotification = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// @desc    Get admin dashboard statistics
+// @route   GET /api/admin/stats
+// @access  Private/Admin
+exports.getAdminStats = async (req, res) => {
+  try {
+    // Count total communities
+    const totalCommunities = await Community.countDocuments();
+
+    // Count new communities this month
+    const newCommunitiesThisMonth = await Community.countDocuments({
+      createdAt: {
+        $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      },
+    });
+
+    // Count active members (users with active status)
+    const activeMembers = await User.countDocuments({ status: "active" });
+
+    // Count new members this month
+    const newMembersThisMonth = await User.countDocuments({
+      createdAt: {
+        $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      },
+      status: "active",
+    });
+
+    // Count pending reports (awaiting admin approval)
+    const pendingReports = await DeathReport.countDocuments({
+      status: "under-review",
+      adminApproved: false,
+    });
+
+    const reportsNeedingReview = await DeathReport.aggregate([
+      {
+        $match: {
+          status: "under-review",
+        },
+      },
+      {
+        $addFields: {
+          approvedCount: {
+            $size: {
+              $filter: {
+                input: "$votes",
+                as: "vote",
+                cond: { $eq: ["$$vote.approved", true] },
+              },
+            },
+          },
+        },
+      },
+      {
+        $match: {
+          approvedCount: { $gte: 10 },
+        },
+      },
+      {
+        $count: "total",
+      },
+    ]);
+    const reportsNeedingReviewCount = reportsNeedingReview[0]?.total || 0;
+
+    // Calculate total payouts
+    const payoutResult = await DeathReport.aggregate([
+      { $match: { status: "paid" } },
+      { $group: { _id: null, total: { $sum: "$payoutAmount" } } },
+    ]);
+    const totalPayouts = payoutResult[0]?.total || 0;
+
+    // Calculate payouts this month
+    const monthlyPayoutResult = await DeathReport.aggregate([
+      {
+        $match: {
+          status: "paid",
+          payoutDate: {
+            $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$payoutAmount" } } },
+    ]);
+    const payoutsThisMonth = monthlyPayoutResult[0]?.total || 0;
+
+    res.json({
+      success: true,
+      data: {
+        totalCommunities,
+        newCommunitiesThisMonth,
+        activeMembers,
+        newMembersThisMonth,
+        pendingReports,
+        reportsNeedingReviewCount,
+        totalPayouts,
+        payoutsThisMonth,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// @desc    Get recent death reports
+// @route   GET /api/admin/recent-reports
+// @access  Private/Admin
+exports.getRecentReports = async (req, res) => {
+  try {
+    const recentReports = await DeathReport.find()
+      .populate("deceased")
+      .populate("reporter", "firstName lastName")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json({ success: true, data: recentReports });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// @desc    Get admin activity feed
+// @route   GET /api/admin/activity
+// @access  Private/Admin
+exports.getAdminActivity = async (req, res) => {
+  try {
+    // Get recent user registrations
+    const recentUsers = await User.find()
+      .select("firstName lastName createdAt")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Get recent reports
+    const recentReports = await DeathReport.find()
+      .select("status createdAt")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Get recent payouts
+    const recentPayouts = await DeathReport.find({ status: "paid" })
+      .select("payoutAmount payoutDate")
+      .sort({ payoutDate: -1 })
+      .limit(5);
+
+    // Format activity feed items
+    const activityFeed = [
+      ...recentUsers.map((user) => ({
+        type: "user_registration",
+        title: "New User Registered",
+        description: `${user.firstName} ${user.lastName} joined`,
+        timestamp: user.createdAt,
+        id: user._id,
+      })),
+      ...recentReports.map((report) => ({
+        type: "report_submission",
+        title: "Death Report Submitted",
+        description: `Report status: ${report.status}`,
+        timestamp: report.createdAt,
+        id: report._id,
+      })),
+      ...recentPayouts.map((payout) => ({
+        type: "payout_processed",
+        title: "Payout Completed",
+        description: `ZAR ${payout.payoutAmount.toFixed(2)} paid out`,
+        timestamp: payout.payoutDate,
+        id: payout._id,
+      })),
+    ]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 10);
+
+    res.json({ success: true, data: activityFeed });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
