@@ -11,7 +11,6 @@ import { RecentActivity } from "./section/RecentActivity";
 export const Dashboard = () => {
   const navigate = useNavigate();
   const { data: stats, isLoading, isError } = useDashboardStats();
-
   if (isLoading) {
     return (
       <div className="container py-8 space-y-6">
@@ -75,10 +74,10 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.activeBeneficiaries}
+              {stats.data.activeBeneficiaries}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats.maxBeneficiaries} max allowed
+              {stats.data.maxBeneficiaries} max allowed
             </p>
           </CardContent>
         </Card>
@@ -101,9 +100,9 @@ export const Dashboard = () => {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.yourReports}</div>
+            <div className="text-2xl font-bold">{stats.data.yourReports}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.pendingReports} pending
+              {stats.data.pendingReports} pending
             </p>
           </CardContent>
         </Card>
@@ -129,10 +128,10 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ZAR {stats.nextContributionAmount}
+              ZAR {stats.data.nextContributionAmount}
             </div>
             <p className="text-xs text-muted-foreground">
-              Due {stats.nextContributionDate}
+              Due {stats.data.nextContributionDate}
             </p>
           </CardContent>
         </Card>

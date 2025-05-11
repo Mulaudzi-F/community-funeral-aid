@@ -1,13 +1,26 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useSection } from "@/hooks/useSections";
+import {
+  useSection,
+  useSectionFinances,
+  useSectionReports,
+} from "@/hooks/useSections";
 import { SectionMembers } from "./Members";
 import { SectionReports } from "./SectionReports";
 import { SectionFinances } from "./Finances";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/useAuth";
+import { PaymentHistory } from "../payments/PaymentHistory";
 
 export const MySection = () => {
-  const { data: section, isLoading, isError } = useSection();
+  const { user } = useAuth();
+  const {
+    section: { _id: sectionId },
+  } = user;
+
+  const { data: section, isLoading, isError } = useSection(sectionId);
+  const { data: sectionReports, isLoading: sectionReportisLoading } =
+    useSectionReports(sectionId);
 
   if (isLoading) {
     return (
@@ -38,9 +51,9 @@ export const MySection = () => {
   return (
     <div className="container py-8 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{section.name}</h1>
+        <h1 className="text-3xl font-bold">{section.data?.name}</h1>
         <div className="text-sm text-muted-foreground">
-          Part of {section.community.name}
+          Part of {section.data?.community.name}
         </div>
       </div>
 
@@ -49,18 +62,23 @@ export const MySection = () => {
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="finances">Finances</TabsTrigger>
+          <TabsTrigger value="paymentHistory">Payment History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="members">
-          <SectionMembers members={section.members} />
+          <SectionMembers members={section.data?.members} />
         </TabsContent>
 
         <TabsContent value="reports">
-          <SectionReports reports={section.recentReports} />
+          <SectionReports reports={sectionReports?.data} />
         </TabsContent>
 
         <TabsContent value="finances">
-          <SectionFinances finances={section.finances} />
+          <SectionFinances sectionId={sectionId} />
+        </TabsContent>
+
+        <TabsContent>
+          <PaymentHistory />
         </TabsContent>
       </Tabs>
     </div>

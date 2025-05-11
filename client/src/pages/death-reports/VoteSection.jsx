@@ -3,6 +3,7 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useVoteOnDeathReport } from "@/hooks/useDeathReports";
 import { Toaster } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const VoteSection = ({ reportId, currentUser, votes, status }) => {
   // const { toast } = useToast();

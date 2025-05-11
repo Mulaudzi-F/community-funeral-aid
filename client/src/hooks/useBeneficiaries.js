@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axios";
-import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 // Fetch all beneficiaries for the current user
 export const useBeneficiaries = () => {
@@ -24,18 +24,15 @@ export const useAddBeneficiary = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["beneficiaries"] });
-      Toaster({
-        title: "Beneficiary added",
+
+      toast.success("Beneficiary added", {
         description: "The beneficiary has been successfully added.",
-        variant: "success",
       });
     },
     onError: (error) => {
-      Toaster({
-        title: "Error",
+      toast.error("Error", {
         description:
-          error.response?.data?.message || "Failed to add beneficiary",
-        variant: "destructive",
+          error?.response?.data?.message || "Failed to add beneficiary.",
       });
     },
   });
@@ -52,18 +49,15 @@ export const useUpdateBeneficiary = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["beneficiaries"] });
-      Toaster({
-        title: "Beneficiary updated",
+
+      toast.success("Beneficiary updated", {
         description: "The beneficiary has been successfully updated.",
-        variant: "success",
       });
     },
     onError: (error) => {
-      Toaster({
-        title: "Error",
+      toast.error("Error", {
         description:
           error.response?.data?.message || "Failed to update beneficiary",
-        variant: "destructive",
       });
     },
   });
@@ -80,18 +74,15 @@ export const useDeleteBeneficiary = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["beneficiaries"] });
-      Toaster({
-        title: "Beneficiary removed",
+
+      toast.success("Beneficiary removed", {
         description: "The beneficiary has been successfully removed.",
-        variant: "success",
       });
     },
     onError: (error) => {
-      Toaster({
-        title: "Error",
+      toast.error("Error", {
         description:
-          error.response?.data?.message || "Failed to remove beneficiary",
-        variant: "destructive",
+          error?.response?.data?.message || "Failed to remove beneficiary.",
       });
     },
   });
@@ -108,18 +99,15 @@ export const useVerifyBeneficiary = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["beneficiaries"] });
-      Toaster({
-        title: "Beneficiary verified",
+
+      toast.success("Beneficiary verified", {
         description: "The beneficiary has been successfully verified.",
-        variant: "success",
       });
     },
     onError: (error) => {
-      Toaster({
-        title: "Verification failed",
+      toast.error("Verification failed", {
         description:
-          error.response?.data?.message || "Failed to verify beneficiary",
-        variant: "destructive",
+          error?.response?.data?.message || "Failed to verify beneficiary.",
       });
     },
   });

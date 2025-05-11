@@ -31,7 +31,7 @@ export function CreateSectionForm({ communityId, onSuccess }) {
   });
 
   // Use the useCreateSection hook
-  const { mutate: createSection, isLoading } = useCreateSection(
+  const { mutate: createSection, isPending } = useCreateSection(
     communityId,
     onSuccess
   );
@@ -77,12 +77,12 @@ export function CreateSectionForm({ communityId, onSuccess }) {
             type="button"
             variant="outline"
             onClick={() => form.reset()}
-            disabled={isLoading}
+            disabled={isPending}
           >
             Clear
           </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
+          <Button type="submit" disabled={isPending}>
+            {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating...

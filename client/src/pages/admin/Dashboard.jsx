@@ -5,10 +5,10 @@ import { ActivityFeed } from "./ActivityFeed";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "react-router-dom";
 
 export const AdminDashboard = () => {
   const { data: stats, isLoading, isError } = useAdminStats();
-
   if (isLoading) {
     return (
       <div className="container py-8 space-y-6">
@@ -72,9 +72,11 @@ export const AdminDashboard = () => {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCommunities}</div>
+            <div className="text-2xl font-bold">
+              {stats.data.totalCommunities}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +{stats.newCommunitiesThisMonth} this month
+              +{stats.data.newCommunitiesThisMonth} this month
             </p>
           </CardContent>
         </Card>
@@ -99,9 +101,9 @@ export const AdminDashboard = () => {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeMembers}</div>
+            <div className="text-2xl font-bold">{stats.data.activeMembers}</div>
             <p className="text-xs text-muted-foreground">
-              +{stats.newMembersThisMonth} new this month
+              +{stats.data.newMembersThisMonth} new this month
             </p>
           </CardContent>
         </Card>
@@ -132,9 +134,11 @@ export const AdminDashboard = () => {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingReports}</div>
+            <div className="text-2xl font-bold">
+              {stats.data.pendingReports}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {stats.reportsNeedingReview} need your review
+              {stats.data.reportsNeedingReview} need your review
             </p>
           </CardContent>
         </Card>
@@ -157,10 +161,10 @@ export const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ZAR {stats.totalPayouts.toLocaleString()}
+              ZAR {stats.data.totalPayouts.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              ZAR {stats.payoutsThisMonth.toLocaleString()} this month
+              ZAR {stats.data.payoutsThisMonth.toLocaleString()} this month
             </p>
           </CardContent>
         </Card>

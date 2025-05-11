@@ -1,13 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axios";
-import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 // Fetch all communities
-export const useCommunities = () => {
+export const useCommunities = (searchTerm = "") => {
   return useQuery({
-    queryKey: ["communities"],
+    queryKey: ["communities", searchTerm],
     queryFn: async () => {
-      const response = await api.get("/communities");
+      const response = await api.get("/communities", {
+        params: { search: searchTerm },
+      });
       return response.data;
     },
   });
@@ -21,7 +23,7 @@ export const useCommunity = (id) => {
       const response = await api.get(`/communities/${id}`);
       return response.data;
     },
-    enabled: !!id, // Only fetch if ID is provided
+    enabled: !!id,
   });
 };
 
@@ -36,18 +38,15 @@ export const useCreateCommunity = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["communities"] });
-      Toaster({
-        title: "Community created",
+
+      toast.success("Community created", {
         description: "The new community has been successfully created.",
-        variant: "success",
       });
     },
     onError: (error) => {
-      Toaster({
-        title: "Error",
+      toast.error("Error", {
         description:
-          error.response?.data?.message || "Failed to create community",
-        variant: "destructive",
+          error?.response?.data?.message || "Failed to create community.",
       });
     },
   });
@@ -64,18 +63,15 @@ export const useUpdateCommunity = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["communities"] });
-      Toaster({
-        title: "Community updated",
+
+      toast.success("Community updated", {
         description: "The community has been successfully updated.",
-        variant: "success",
       });
     },
     onError: (error) => {
-      Toaster({
-        title: "Error",
+      toast.error("Error", {
         description:
-          error.response?.data?.message || "Failed to update community",
-        variant: "destructive",
+          error?.response?.data?.message || "Failed to update community.",
       });
     },
   });
@@ -89,7 +85,7 @@ export const useCommunitySections = (communityId) => {
       const response = await api.get(`/communities/${communityId}/sections`);
       return response.data;
     },
-    enabled: !!communityId, // Only fetch if communityId is provided
+    enabled: !!communityId,
   });
 };
 
@@ -108,19 +104,28 @@ export const useJoinCommunity = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
       queryClient.invalidateQueries({ queryKey: ["communities"] });
-      Toaster({
-        title: "Success",
+
+      toast.success("Joined community", {
         description: "You have successfully joined the community.",
-        variant: "success",
       });
     },
     onError: (error) => {
-      Toaster({
-        title: "Error",
+      toast.error("Error", {
         description:
-          error.response?.data?.message || "Failed to join community",
-        variant: "destructive",
+          error?.response?.data?.message || "Failed to join community.",
       });
     },
+  });
+};
+
+// Fetch community stats
+export const useCommunityStats = (communityId) => {
+  return useQuery({
+    queryKey: ["communityStats", communityId],
+    queryFn: async () => {
+      const response = await api.get(`/communities/${communityId}/stats`);
+      return response.data;
+    },
+    enabled: !!communityId,
   });
 };

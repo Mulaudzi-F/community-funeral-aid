@@ -23,7 +23,7 @@ export const SectionMembers = ({ members }) => {
           <TableHeader>
             <TableRow>
               <TableHead>Member</TableHead>
-              <TableHead>Contact</TableHead>
+              <TableHead>Address</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -45,22 +45,16 @@ export const SectionMembers = ({ members }) => {
                         <p className="font-medium">
                           {member.firstName} {member.lastName}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          ID: {member.idNumber}
-                        </p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <p className="text-sm">{member.email}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {member.phone}
-                    </p>
+                    <p className="text-sm">{member.address.street}</p>
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant={
-                        member.status === "active" ? "default" : "destructive"
+                        member.status === "active" ? "success" : "destructive"
                       }
                     >
                       {member.status}

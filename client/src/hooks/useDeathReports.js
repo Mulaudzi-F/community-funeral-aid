@@ -5,14 +5,7 @@ import {
   getDeathReportById,
   voteOnDeathReport,
 } from "../api/deathReports";
-
-// Fetch all death reports
-export const useDeathReports = () => {
-  return useQuery({
-    queryKey: ["deathReports"],
-    queryFn: getDeathReports,
-  });
-};
+import { toast } from "sonner";
 
 // Fetch a single death report by ID
 export const useDeathReport = (id) => {
@@ -31,9 +24,18 @@ export const useCreateDeathReport = () => {
     mutationFn: createDeathReport,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deathReports"] });
+
+      toast.success("Death Report Created", {
+        description: "The death report was submitted successfully.",
+      });
     },
     onError: (error) => {
-      console.error("Error creating death report:", error);
+      console.log(error);
+      toast.error("Error", {
+        description:
+          error?.response?.data?.message ||
+          "An error occurred while creating the report.",
+      });
     },
   });
 };
@@ -49,9 +51,17 @@ export const useVoteOnDeathReport = () => {
         queryKey: ["deathReport", variables.id],
       });
       queryClient.invalidateQueries({ queryKey: ["deathReports"] });
+
+      toast.success("Vote Submitted", {
+        description: "Your vote has been recorded.",
+      });
     },
     onError: (error) => {
-      console.error("Error voting on death report:", error);
+      toast.error("Error", {
+        description:
+          error?.response?.data?.message ||
+          "An error occurred while submitting your vote.",
+      });
     },
   });
 };

@@ -1,9 +1,9 @@
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const api = axios.create({
-  baseURL,
+  baseURL: `${baseURL}/api`,
   withCredentials: true,
 });
 
@@ -28,7 +28,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Handle unauthorized access
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      //window.location.href = "/login";
     }
     return Promise.reject(error);
   }

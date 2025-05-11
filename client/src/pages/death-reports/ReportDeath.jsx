@@ -27,6 +27,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Loader2, PlusCircle } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/contexts/useAuth";
+import { logActivity } from "@/utils/activity";
 
 const formSchema = z.object({
   beneficiaryId: z.string().min(1, "Required"),
@@ -49,7 +50,7 @@ export const ReportDeath = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: beneficiaries } = useBeneficiaries();
-  const { mutate: createDeathReport, isLoading } = useCreateDeathReport();
+  const { mutateAsync: createDeathReport, isPending } = useCreateDeathReport();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -66,28 +67,36 @@ export const ReportDeath = () => {
     },
   });
 
-  const onSubmit = (values) => {
+  const onSubmit = async (values) => {
     const formData = new FormData();
     formData.append("beneficiaryId", values.beneficiaryId);
     formData.append("deathCertificate", values.deathCertificate);
     formData.append("bankDetails", JSON.stringify(values.bankDetails));
 
-    createDeathReport(formData, {
-      onSuccess: () => {
-        Toaster({
-          title: "Report submitted",
-          description: "Your death report has been submitted for review.",
-        });
-        navigate("/death-reports");
-      },
-      onError: (error) => {
-        Toaster({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
+    try {
+      const response = await createDeathReport(formData);
+
+      // When a report is submitted
+      const beneficiary = beneficiaries.find(
+        (b) => b._id === values.beneficiaryId
+      );
+
+      const deceasedName = beneficiary
+        ? `${beneficiary.firstName} ${beneficiary.lastName}`
+        : "Unknown";
+
+      await logActivity(
+        user._id,
+        "report_submitted",
+        "Death report submitted",
+        `Your report for ${deceasedName} has been submitted for review`,
+        { reportId: response.reporter }
+      );
+
+      navigate("/death-reports");
+    } catch (error) {
+      console.error("Error submitting report:", error);
+    }
   };
 
   return (
@@ -248,12 +257,12 @@ export const ReportDeath = () => {
                   type="button"
                   variant="outline"
                   onClick={() => navigate("/death-reports")}
-                  disabled={isLoading}
+                  disabled={isPending}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Submitting...

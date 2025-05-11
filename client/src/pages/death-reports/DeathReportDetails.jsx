@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Download,
   ChevronLeft,
+  MapPin,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
@@ -84,10 +85,14 @@ export const DeathReportDetails = () => {
         </Button>
         <div className="flex justify-between items-center flex-1">
           <h1 className="text-3xl font-bold">Death Report Details</h1>
-          <Badge variant={statusVariants[report.status]} className="text-sm">
+          <Badge
+            variant={statusVariants[report.data.status]}
+            className="text-sm"
+          >
             <div className="flex items-center gap-2">
               {statusIcons[report.status]}
-              {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+              {report.data.status?.charAt(0).toUpperCase() +
+                report.data.status?.slice(1)}
             </div>
           </Badge>
         </div>
@@ -104,49 +109,37 @@ export const DeathReportDetails = () => {
               <User className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Name</p>
-                <p className="font-medium">
-                  {report.deceased.firstName} {report.deceased.lastName}
-                </p>
+                <p className="font-medium">{report.data.deceased?.name}</p>
               </div>
             </div>
-
             <div className="flex items-center gap-4">
               <CalendarDays className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Date of Birth</p>
                 <p className="font-medium">
-                  {new Date(report.deceased.dob).toLocaleDateString()}
+                  {new Date(report.data.deceased.dob).toLocaleDateString()}
                 </p>
               </div>
             </div>
-
             <div className="flex items-center gap-4">
               <User className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Relationship</p>
                 <p className="font-medium capitalize">
-                  {report.deceased.relationship}
+                  {report.data.deceased.relationship}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <FileText className="h-5 w-5 text-muted-foreground" />
+              <MapPin className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Death Certificate
+                  Address (Street)
                 </p>
-                <Button variant="link" className="h-auto p-0">
-                  <a
-                    href={report.deathCertificate}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    View Certificate
-                  </a>
-                </Button>
+                <p className="text-sm font-medium text-foreground">
+                  {report.data.reporter.address.street}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -162,30 +155,34 @@ export const DeathReportDetails = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Account Holder</p>
                 <p className="font-medium">
-                  {report.bankDetails.accountHolder}
+                  {report.data.bankDetails.accountHolder}
                 </p>
               </div>
 
               <div>
                 <p className="text-sm text-muted-foreground">Account Number</p>
                 <p className="font-medium">
-                  {report.bankDetails.accountNumber}
+                  {report.data.bankDetails.accountNumber}
                 </p>
               </div>
 
               <div>
                 <p className="text-sm text-muted-foreground">Bank Name</p>
-                <p className="font-medium">{report.bankDetails.bankName}</p>
+                <p className="font-medium">
+                  {report.data.bankDetails.bankName}
+                </p>
               </div>
 
               <div>
                 <p className="text-sm text-muted-foreground">Branch Code</p>
-                <p className="font-medium">{report.bankDetails.branchCode}</p>
+                <p className="font-medium">
+                  {report.data.bankDetails.branchCode}
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          {report.status === "paid" && (
+          {report.data.status === "paid" && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl">Payout Information</CardTitle>
@@ -196,7 +193,7 @@ export const DeathReportDetails = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Amount</p>
                     <p className="font-medium">
-                      ZAR {report.payoutAmount?.toFixed(2)}
+                      ZAR {report.data.payoutAmount?.toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -206,7 +203,7 @@ export const DeathReportDetails = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Date Paid</p>
                     <p className="font-medium">
-                      {new Date(report.payoutDate).toLocaleDateString()}
+                      {new Date(report.data.payoutDate).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -217,17 +214,18 @@ export const DeathReportDetails = () => {
       </div>
 
       {/* Voting Section (only for pending/under-review reports) */}
-      {(report.status === "pending" || report.status === "under-review") && (
+      {(report.data.status === "pending" ||
+        report.data.status === "under-review") && (
         <VoteSection
-          reportId={report._id}
+          reportId={report.data._id}
           currentUser={user}
-          votes={report.votes}
-          status={report.status}
+          votes={report.data.votes}
+          status={report.data.status}
         />
       )}
 
       {/* Admin Actions (only for under-review reports and admin users) */}
-      {report.status === "under-review" && user?.isAdmin && (
+      {report.data.status === "under-review" && user?.isAdmin && (
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Admin Actions</CardTitle>
@@ -256,21 +254,19 @@ export const DeathReportDetails = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Reported By</p>
-              <p className="font-medium">
-                {report.reporter.firstName} {report.reporter.lastName}
-              </p>
+              <p className="font-medium">{report.data.reporter.name}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Report Date</p>
               <p className="font-medium">
-                {new Date(report.createdAt).toLocaleDateString()}
+                {new Date(report.data.createdAt).toLocaleDateString()}
               </p>
             </div>
-            {report.deadline && (
+            {report.data.deadline && (
               <div>
                 <p className="text-sm text-muted-foreground">Voting Deadline</p>
                 <p className="font-medium">
-                  {new Date(report.deadline).toLocaleDateString()}
+                  {new Date(report.data.deadline).toLocaleDateString()}
                 </p>
               </div>
             )}

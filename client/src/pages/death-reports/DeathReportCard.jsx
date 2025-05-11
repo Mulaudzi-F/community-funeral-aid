@@ -17,6 +17,7 @@ import {
   Clock,
   XCircle,
 } from "lucide-react";
+import { PaymentButton } from "../payments/PaymentButton";
 
 const statusVariants = {
   pending: {
@@ -54,7 +55,7 @@ export const DeathReportCard = ({ report }) => {
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <CardTitle className="text-lg">
-            {report.deceased.firstName} {report.deceased.lastName}
+            {report.deceased?.firstName} {report.deceased?.lastName}
           </CardTitle>
           <Badge variant={status.variant} className="flex items-center gap-1">
             {status.icon}
@@ -65,7 +66,7 @@ export const DeathReportCard = ({ report }) => {
       <CardContent className="space-y-2">
         <div className="flex items-center text-sm text-muted-foreground">
           <User className="mr-2 h-4 w-4" />
-          {report.deceased.relationship}
+          {report.deceased?.relationship}
         </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <CalendarDays className="mr-2 h-4 w-4" />
@@ -80,10 +81,18 @@ export const DeathReportCard = ({ report }) => {
           </div>
         )}
       </CardContent>
-      <CardFooter>
-        <Button asChild variant="outline" className="w-full">
+      <CardFooter className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Button asChild variant="outline" className="w-full sm:w-auto">
           <Link to={`/death-reports/${report._id}`}>View Details</Link>
         </Button>
+        {report.status === "approved" && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 w-full sm:w-auto">
+            <PaymentButton
+              deathReportId={report._id}
+              className="w-full sm:w-auto"
+            />
+          </div>
+        )}
       </CardFooter>
     </Card>
   );

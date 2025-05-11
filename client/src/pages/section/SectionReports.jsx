@@ -47,12 +47,12 @@ export const SectionReports = ({ reports = [] }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.map((report) => (
+              {reports?.map((report) => (
                 <TableRow key={report._id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      {report.deceased.firstName} {report.deceased.lastName}
+                      {report.deceased?.firstName} {report.deceased?.lastName}
                     </div>
                   </TableCell>
                   <TableCell>

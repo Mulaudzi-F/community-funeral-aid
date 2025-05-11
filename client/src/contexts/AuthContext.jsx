@@ -1,32 +1,27 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-
 import {
   register as registerApi,
   login as loginApi,
   getProfile,
   logout as logoutApi,
 } from "../api/auth";
-
-const AuthContext = createContext();
+import api from "@/api/axios";
+import { useNavigate } from "react-router-dom";
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const queryClient = useQueryClient();
-  const [user, setUser] = useState(null);
-
   // Fetch user profile
-
-  const { isLoading } = useQuery({
+  const { isLoading, data: user } = useQuery({
     queryKey: ["user"],
     queryFn: getProfile,
     onSuccess: (data) => {
       console.log("User fetched successfully:", data);
-      setUser(data);
     },
     onError: (error) => {
       console.error("Failed to fetch user:", error);
-      setUser(null);
       localStorage.removeItem("token"); // Clear token if invalid
     },
     retry: false,
@@ -38,36 +33,29 @@ export const AuthProvider = ({ children }) => {
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
       queryClient.invalidateQueries({ queryKey: ["user"] });
-      toast.success({
-        title: "Registration successful",
-        description: "Your account has been created.",
-      });
+      toast.success("Registration successful. Your account has been created.");
     },
     onError: (error) => {
-      toast.success({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Something went wrong."
+      );
     },
   });
 
+  // Login mutation
   const loginMutation = useMutation({
     mutationFn: loginApi,
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
       queryClient.invalidateQueries({ queryKey: ["user"] });
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
+      toast.success("Login successful. Welcome back!");
     },
     onError: (error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(
+        error.response?.data?.message || error.message || "Invalid credentials."
+      );
     },
   });
 
@@ -76,24 +64,49 @@ export const AuthProvider = ({ children }) => {
     mutationFn: logoutApi,
     onSuccess: () => {
       localStorage.removeItem("token");
-      setUser(null);
       queryClient.clear();
-      toast.success({
-        title: "Logged out",
-        description: "You have been successfully logged out.",
-      });
+      toast.success("Logged out. You have been successfully logged out.");
+    },
+  });
+
+  // Verify Email Mutation
+  const verifyEmailMutation = useMutation({
+    mutationFn: (token) => api.get(`/auth/verify-email?token=${token}`),
+    onSuccess: () => {
+      toast.success(
+        "Email verified. Your email has been successfully verified."
+      );
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Invalid or expired token.");
+    },
+  });
+
+  // Resend Verification Email Mutation
+  const resendVerificationEmailMutation = useMutation({
+    mutationFn: () => api.post("/auth/send-verification"),
+    onSuccess: () => {
+      toast.success(
+        "Verification email sent. Check your inbox for the verification link."
+      );
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Please try again later.");
     },
   });
 
   const value = {
     user,
     isLoading,
+    isRegistering: registerMutation.isPending,
     register: registerMutation.mutateAsync,
-    isRegistering: registerMutation.isLoading,
     login: loginMutation.mutateAsync,
-    isLoggingIn: loginMutation.isLoading,
+    isLoggingIn: loginMutation.isPending,
     logout: logoutMutation.mutateAsync,
     isLoggingOut: logoutMutation.isLoading,
+    verifyEmail: verifyEmailMutation.mutateAsync,
+    resendVerificationEmail: resendVerificationEmailMutation.mutateAsync,
+    isResendingVerificationEmail: resendVerificationEmailMutation.isLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

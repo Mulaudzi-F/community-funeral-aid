@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAddBeneficiary } from "@/hooks/useBeneficiaries";
+import { useAddBeneficiary, useBeneficiaries } from "@/hooks/useBeneficiaries";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -28,7 +28,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { BeneficiaryLimitModal } from "./BeneficiaryLimit";
 
+const MAX_BENEFICIARIES = 7;
 const beneficiarySchema = z.object({
   firstName: z.string().min(1, "Required"),
   lastName: z.string().min(1, "Required"),
@@ -39,7 +41,8 @@ const beneficiarySchema = z.object({
 
 export const AddBeneficiary = () => {
   const navigate = useNavigate();
-  const { mutate: addBeneficiary, isLoading } = useAddBeneficiary();
+  const { mutate: addBeneficiary, isPending } = useAddBeneficiary();
+  const { data: beneficiaries } = useBeneficiaries();
 
   const form = useForm({
     resolver: zodResolver(beneficiarySchema),
@@ -55,13 +58,24 @@ export const AddBeneficiary = () => {
   const onSubmit = (values) => {
     addBeneficiary(values, {
       onSuccess: () => {
-        navigate("/profile/beneficiaries");
+        navigate("/profile/");
       },
     });
   };
 
   return (
     <div className="container py-8">
+      <BeneficiaryLimitModal />
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Add Beneficiary</h1>
+          <p className="text-muted-foreground">
+            Current beneficiaries:{" "}
+            {beneficiaries && beneficiaries.filter((b) => b.isAlive).length}/
+            {MAX_BENEFICIARIES}
+          </p>
+        </div>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Add Beneficiary</CardTitle>
@@ -159,8 +173,8 @@ export const AddBeneficiary = () => {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading && (
+                <Button type="submit" disabled={isPending}>
+                  {isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   Add Beneficiary

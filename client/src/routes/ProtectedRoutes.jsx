@@ -11,6 +11,13 @@ export const ProtectedRoute = () => {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+  if (
+    user &&
+    !user.isEmailVerified &&
+    !location.pathname.startsWith("/verify-email")
+  ) {
+    return <Navigate to="/verify-email" replace />;
+  }
 
   return <Outlet />;
 };

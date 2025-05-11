@@ -1,3 +1,4 @@
+import { useActivities } from "@/hooks/useActivities";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Activity,
@@ -18,30 +19,26 @@ const activityIcons = {
 };
 
 export const RecentActivity = () => {
-  // In a real app, this would come from the API
-  const activities = [
-    {
-      id: 1,
-      type: "payment",
-      title: "Payment received",
-      description: "Your contribution of ZAR 15.00 has been processed",
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 2,
-      type: "report_submitted",
-      title: "Death report submitted",
-      description: "Your report for John Doe has been submitted for review",
-      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 3,
-      type: "new_member",
-      title: "New section member",
-      description: "Jane Smith has joined your section",
-      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    },
-  ];
+  const { data, isLoading, isError } = useActivities();
+
+  if (isLoading) {
+    return <RecentActivitySkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-destructive">
+            Failed to load activities
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -49,13 +46,13 @@ export const RecentActivity = () => {
         <CardTitle>Recent Activity</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {activities.length === 0 ? (
+        {data?.data?.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">No recent activity</p>
           </div>
         ) : (
-          activities.map((activity) => (
-            <div key={activity.id} className="flex items-start gap-4">
+          data?.data?.map((activity) => (
+            <div key={activity._id} className="flex items-start gap-4">
               <div className="flex items-center justify-center h-10 w-10 rounded-full bg-secondary">
                 {activityIcons[activity.type]}
               </div>
@@ -65,7 +62,7 @@ export const RecentActivity = () => {
                   {activity.description}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {format(activity.date, "PPpp")}
+                  {format(new Date(activity.createdAt), "PPpp")}
                 </div>
               </div>
             </div>

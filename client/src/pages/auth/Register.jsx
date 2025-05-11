@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/useAuth";
+import { useCommunities } from "@/hooks/useCommunities";
+import { useCommunitySection } from "@/hooks/useSections";
 import {
   Form,
   FormControl,
@@ -11,10 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -22,58 +22,122 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCommunities } from "@/hooks/useCommunities";
-import { useSection } from "@/hooks/useSections";
-import { useAuth } from "@/contexts/useAuth";
+import { Button } from "@/components/ui/button";
+import { Loader2, PlusCircle, Search } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { logActivity } from "@/utils/activity";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CreateCommunityForm } from "../Communities/CreateCommunityForm";
+import { Label } from "@/components/ui/label";
+import { CreateSectionForm } from "../section/CreateSectionForm";
 
-const formSchema = z.object({
-  firstName: z.string().min(1, "Required"),
-  lastName: z.string().min(1, "Required"),
-  idNumber: z.string().min(13, "ID number must be 13 digits").max(13),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  communityId: z.string().min(1, "Required"),
-  sectionId: z.string().min(1, "Required"),
-  address: z.object({
-    street: z.string().min(1, "Required"),
-    city: z.string().min(1, "Required"),
-    postalCode: z.string().min(1, "Required"),
-  }),
-});
+// Form validation schema
+const formSchema = z
+  .object({
+    firstName: z.string().min(2, "First name must be at least 2 characters"),
+    lastName: z.string().min(2, "Last name must be at least 2 characters"),
+    idNumber: z.string().min(13).max(13, "ID number must be 13 characters"),
+    dob: z.string().nonempty("Date of birth is required"),
+    email: z.string().email("Invalid email address"),
+    phone: z.string().min(10, "Phone number must be at least 10 digits"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters"),
+    address: z.object({
+      street: z.string().min(2, "Street address is required"),
+      city: z.string().min(2, "City is required"),
+      province: z.string().min(2, "Province is required"),
+      postalCode: z.string().min(4, "Postal code is required"),
+      country: z.string().default("South Africa"),
+    }),
+    communityId: z.string().min(1, "Please select a community"),
+    sectionId: z.string().min(1, "Please select a section"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export const Register = () => {
-  const { register, isRegistering } = useAuth();
   const navigate = useNavigate();
-  const { data: communities } = useCommunities();
-  const { data: sections } = useSection();
-  console.log(sections);
+  const { register, isRegistering } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sectionSearchTerm, setSectionSearchTerm] = useState("");
+  const [showCreateCommunity, setShowCreateCommunity] = useState(false);
+  const [isSectionDialogOpen, setIsSectionDialogOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
       idNumber: "",
+      dob: "",
       email: "",
       phone: "",
       password: "",
-      communityId: "",
-      sectionId: "",
+      confirmPassword: "",
       address: {
         street: "",
         city: "",
+        province: "",
         postalCode: "",
+        country: "South Africa",
       },
+      addressProof: "",
+      communityId: "",
+      sectionId: "",
     },
   });
 
   const selectedCommunityId = form.watch("communityId");
+  const {
+    data: communities,
+    isLoading: isLoadingCommunities,
+    refetchCommunities,
+  } = useCommunities(searchTerm);
+  // Fetch sections only when a community is selected
+  const {
+    data: sections,
+    isLoading: isLoadingSections,
+    refetchSections,
+  } = useCommunitySection(selectedCommunityId, {
+    enabled: !!selectedCommunityId, // Only fetch if communityId exists
+  });
+
+  // Filter sections based on search term
+  const filteredSections = sections?.data.filter((section) =>
+    section.name.toLowerCase().includes(sectionSearchTerm.toLowerCase())
+  );
 
   const onSubmit = async (values) => {
     try {
-      await register(values);
-      navigate("/dashboard");
+      // Register the user
+      const newUser = await register(values);
+
+      // Log the activity
+      const newMemberName = `${values.firstName} ${values.lastName}`;
+      await logActivity(
+        newUser._id, // Assuming `register` returns the new user's data
+        "new_member",
+        "New section member",
+        `${newMemberName} has joined your section`,
+        { memberId: newUser._id }
+      );
+
+      // Navigate to the email verification page
+      navigate("/verify-email");
     } catch (error) {
+      console.error("Registration error:", error);
       form.setError("root", {
         type: "manual",
         message: error.message || "Registration failed",
@@ -81,22 +145,26 @@ export const Register = () => {
     }
   };
 
+  // Handle community creation success
+  const handleCommunityCreated = (newCommunity) => {
+    form.setValue("communityId", newCommunity._id);
+    setShowCreateCommunity(false);
+    refetchCommunities();
+  };
+
   return (
-    <div className="container flex items-center justify-center min-h-screen py-8">
+    <div className="container flex items-center justify-center min-h-screen py-12">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Register</CardTitle>
+          <CardTitle className="text-2xl text-center">
+            Create an Account
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {form.formState.errors.root && (
-                <p className="text-sm font-medium text-destructive">
-                  {form.formState.errors.root.message}
-                </p>
-              )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* First Name */}
                 <FormField
                   control={form.control}
                   name="firstName"
@@ -111,6 +179,7 @@ export const Register = () => {
                   )}
                 />
 
+                {/* Last Name */}
                 <FormField
                   control={form.control}
                   name="lastName"
@@ -125,12 +194,13 @@ export const Register = () => {
                   )}
                 />
 
+                {/* ID Number */}
                 <FormField
                   control={form.control}
                   name="idNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>ID Number</FormLabel>
+                      <FormLabel>South African ID Number</FormLabel>
                       <FormControl>
                         <Input placeholder="1234567890123" {...field} />
                       </FormControl>
@@ -139,6 +209,22 @@ export const Register = () => {
                   )}
                 />
 
+                {/* Date of Birth */}
+                <FormField
+                  control={form.control}
+                  name="dob"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Email */}
                 <FormField
                   control={form.control}
                   name="email"
@@ -146,13 +232,14 @@ export const Register = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="your@email.com" {...field} />
+                        <Input placeholder="john@example.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Phone */}
                 <FormField
                   control={form.control}
                   name="phone"
@@ -167,89 +254,262 @@ export const Register = () => {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Community Selection */}
+                <div className="col-span-full w-full space-y-4 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">
+                      Community Information
+                    </h3>
+                  </div>
 
-                <FormField
-                  control={form.control}
-                  name="communityId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Community</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a community" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {communities.data?.map((community) => (
-                            <SelectItem
-                              key={community._id}
-                              value={community._id}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="communityId"
+                      render={({ field }) => {
+                        const filteredCommunities =
+                          communities?.data?.filter((community) =>
+                            community.name
+                              .toLowerCase()
+                              .includes(searchTerm.toLowerCase())
+                          ) || [];
+
+                        return (
+                          <FormItem>
+                            <FormLabel>Community</FormLabel>
+
+                            {/* Search Input */}
+                            <div className="relative">
+                              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                placeholder="Search communities..."
+                                className="pl-8 mb-2"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                              />
+                            </div>
+
+                            {/* Community Select */}
+                            <Select
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                form.setValue("sectionId", ""); // Reset section when community changes
+                              }}
+                              value={field.value}
                             >
-                              {community.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a community" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {isLoadingCommunities ? (
+                                  <div className="p-4 text-center">
+                                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                                  </div>
+                                ) : filteredCommunities.length > 0 ? (
+                                  <>
+                                    {filteredCommunities.map((community) => (
+                                      <SelectItem
+                                        key={community._id}
+                                        value={community._id}
+                                      >
+                                        {community.name}
+                                      </SelectItem>
+                                    ))}
 
-                <FormField
-                  control={form.control}
-                  name="sectionId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Section</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        disabled={!selectedCommunityId}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a section" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {sections
-                            ?.filter(
-                              (section) =>
-                                section.community._id === selectedCommunityId
-                            )
-                            .map((section) => (
-                              <SelectItem key={section._id} value={section._id}>
-                                {section.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                                    {/* Special extra item (can be styled to look different or disabled if needed) */}
+                                    <div className="p-2">
+                                      <Dialog
+                                        open={showCreateCommunity}
+                                        onOpenChange={setShowCreateCommunity}
+                                      >
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full justify-start gap-2"
+                                            type="button"
+                                          >
+                                            <PlusCircle className="h-4 w-4" />
+                                            Create New Community
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                          <DialogHeader>
+                                            <DialogTitle>
+                                              Create New Community
+                                            </DialogTitle>
+                                          </DialogHeader>
+                                          <CreateCommunityForm
+                                            onSuccess={handleCommunityCreated}
+                                          />
+                                        </DialogContent>
+                                      </Dialog>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="p-4 text-center text-sm text-muted-foreground">
+                                    No communities found.
+                                    <div className="mt-2">
+                                      <Dialog
+                                        open={showCreateCommunity}
+                                        onOpenChange={setShowCreateCommunity}
+                                      >
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-2"
+                                            type="button"
+                                          >
+                                            <PlusCircle className="h-4 w-4" />
+                                            Create New Community
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                          <DialogHeader>
+                                            <DialogTitle>
+                                              Create New Community
+                                            </DialogTitle>
+                                          </DialogHeader>
+                                          <CreateCommunityForm
+                                            onSuccess={handleCommunityCreated}
+                                          />
+                                        </DialogContent>
+                                      </Dialog>
+                                    </div>
+                                  </div>
+                                )}
+                              </SelectContent>
+                            </Select>
 
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="sectionId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Section</FormLabel>
+                          {selectedCommunityId ? (
+                            <div className="space-y-2">
+                              <div className="relative">
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  placeholder="Search sections..."
+                                  className="pl-8"
+                                  value={sectionSearchTerm}
+                                  onChange={(e) =>
+                                    setSectionSearchTerm(e.target.value)
+                                  }
+                                />
+                              </div>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a section" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {isLoadingSections ? (
+                                    <div className="flex justify-center py-4">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    </div>
+                                  ) : filteredSections?.length > 0 ? (
+                                    <>
+                                      {filteredSections.map((section) => (
+                                        <SelectItem
+                                          key={section._id}
+                                          value={section._id}
+                                        >
+                                          {section.name}
+                                        </SelectItem>
+                                      ))}
+
+                                      <div className="p-2">
+                                        <Dialog
+                                          open={isSectionDialogOpen}
+                                          onOpenChange={setIsSectionDialogOpen}
+                                        >
+                                          <DialogTrigger asChild>
+                                            <Button
+                                              type="button"
+                                              variant="link"
+                                              className="text-sm text-primary w-full justify-start"
+                                            >
+                                              <PlusCircle className="mr-2 h-4 w-4" />
+                                              Create new section
+                                            </Button>
+                                          </DialogTrigger>
+                                          <DialogContent>
+                                            <DialogHeader>
+                                              <DialogTitle>
+                                                Create New Section
+                                              </DialogTitle>
+                                            </DialogHeader>
+                                            <CreateSectionForm
+                                              communityId={selectedCommunityId}
+                                            />
+                                          </DialogContent>
+                                        </Dialog>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="text-center py-4 text-sm text-muted-foreground">
+                                      No sections found
+                                      <div className="mt-2">
+                                        <Dialog
+                                          open={isSectionDialogOpen}
+                                          onOpenChange={setIsSectionDialogOpen}
+                                        >
+                                          <DialogTrigger asChild>
+                                            <Button
+                                              type="button"
+                                              variant="link"
+                                              className="text-sm text-primary"
+                                            >
+                                              <PlusCircle className="mr-2 h-4 w-4" />
+                                              Create new section
+                                            </Button>
+                                          </DialogTrigger>
+                                          <DialogContent>
+                                            <DialogHeader>
+                                              <DialogTitle>
+                                                Create New Section
+                                              </DialogTitle>
+                                            </DialogHeader>
+                                            <CreateSectionForm
+                                              communityId={selectedCommunityId}
+                                            />
+                                          </DialogContent>
+                                        </Dialog>
+                                      </div>
+                                    </div>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            <div className="rounded-md border px-4 py-3 text-sm text-muted-foreground">
+                              Please select a community first
+                            </div>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Address Fields */}
                 <FormField
                   control={form.control}
                   name="address.street"
@@ -280,6 +540,20 @@ export const Register = () => {
 
                 <FormField
                   control={form.control}
+                  name="address.province"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Province</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Gauteng" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="address.postalCode"
                   render={({ field }) => (
                     <FormItem>
@@ -291,27 +565,75 @@ export const Register = () => {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter your password"
+                            {...field}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? "Hide" : "Show"}
+                        </Button>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Must be at least 8 characters with uppercase, lowercase,
+                        number, and special character
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Confirm Password Field */}
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Confirm your password"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              <Button type="submit" className="w-full" disabled={isRegistering}>
-                {isRegistering ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Registering...
-                  </>
-                ) : (
-                  "Register"
-                )}
-              </Button>
+              <div className="flex items-center justify-between">
+                <Button asChild variant="ghost">
+                  <Link to="/login">Already have an account? Login</Link>
+                </Button>
 
-              <div className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <Link
-                  to="/login"
-                  className="font-medium text-primary hover:underline"
-                >
-                  Login
-                </Link>
+                <Button type="submit" disabled={isRegistering}>
+                  {isRegistering ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    "Register"
+                  )}
+                </Button>
               </div>
             </form>
           </Form>

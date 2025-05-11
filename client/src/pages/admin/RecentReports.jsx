@@ -67,7 +67,7 @@ export const RecentReports = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {reports?.map((report) => (
+            {reports.data?.map((report) => (
               <TableRow key={report._id}>
                 <TableCell className="font-medium">
                   {report.deceased.firstName} {report.deceased.lastName}
@@ -104,7 +104,7 @@ export const RecentReports = () => {
       <Button
         variant="outline"
         className="w-full"
-        onClick={() => navigate("/admin/reports")}
+        onClick={() => navigate("/death-reports")}
       >
         View All Reports
       </Button>

@@ -29,7 +29,7 @@ const passwordSchema = z
   });
 
 export const ChangePasswordForm = () => {
-  const { mutate: changePassword, isLoading } = useChangePassword();
+  const { mutate: changePassword, isPending } = useChangePassword();
 
   const form = useForm({
     resolver: zodResolver(passwordSchema),
@@ -41,22 +41,7 @@ export const ChangePasswordForm = () => {
   });
 
   const onSubmit = (values) => {
-    changePassword(values, {
-      onSuccess: () => {
-        Toaster({
-          title: "Password changed",
-          description: "Your password has been updated successfully",
-        });
-        form.reset();
-      },
-      onError: (error) => {
-        Toaster({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
+    changePassword(values);
   };
 
   return (
@@ -101,8 +86,8 @@ export const ChangePasswordForm = () => {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" disabled={isPending}>
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Change Password
         </Button>
       </form>

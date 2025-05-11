@@ -4,27 +4,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { useUpdateNotificationSettings } from "@/hooks/useProfile";
 
 export const AccountSettings = ({ user }) => {
-  const { mutate: updateSettings, isLoading } = useUpdateNotificationSettings();
+  const { mutate: updateSettings, isPending } = useUpdateNotificationSettings();
 
   const handleNotificationChange = (type, value) => {
-    updateSettings(
-      { [type]: value },
-      {
-        onSuccess: () => {
-          Toaster({
-            title: "Settings updated",
-            description: "Your notification preferences have been updated",
-          });
-        },
-        onError: (error) => {
-          Toaster({
-            title: "Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        },
-      }
-    );
+    updateSettings();
   };
 
   return (
@@ -44,7 +27,7 @@ export const AccountSettings = ({ user }) => {
               onCheckedChange={(value) =>
                 handleNotificationChange("email", value)
               }
-              disabled={isLoading}
+              disabled={isPending}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -59,7 +42,7 @@ export const AccountSettings = ({ user }) => {
               onCheckedChange={(value) =>
                 handleNotificationChange("sms", value)
               }
-              disabled={isLoading}
+              disabled={isPending}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -74,7 +57,7 @@ export const AccountSettings = ({ user }) => {
               onCheckedChange={(value) =>
                 handleNotificationChange("paymentReminders", value)
               }
-              disabled={isLoading}
+              disabled={isPending}
             />
           </div>
         </div>

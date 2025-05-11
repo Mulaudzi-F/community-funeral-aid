@@ -20,7 +20,6 @@ export const SectionList = ({ communityId }) => {
     isLoading,
     isError,
   } = useCommunitySections(communityId);
-  console.log(sections);
 
   if (isLoading) {
     return (

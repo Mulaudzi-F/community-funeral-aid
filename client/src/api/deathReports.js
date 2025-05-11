@@ -1,24 +1,12 @@
 import api from "./axios";
 
 export const createDeathReport = async (reportData) => {
-  const formData = new FormData();
-
-  // Append all fields to formData
-  Object.keys(reportData).forEach((key) => {
-    if (key === "deathCertificate") {
-      formData.append(key, reportData[key]);
-    } else if (typeof reportData[key] === "object") {
-      formData.append(key, JSON.stringify(reportData[key]));
-    } else {
-      formData.append(key, reportData[key]);
-    }
-  });
-
-  const response = await api.post("/death-reports", formData, {
+  const response = await api.post("/death-reports", reportData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
   });
+
   return response.data;
 };
 

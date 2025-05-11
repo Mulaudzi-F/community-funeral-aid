@@ -36,18 +36,7 @@ export const Footer = () => {
                   </Link>
                 </Button>
               </li>
-              <li>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  asChild
-                >
-                  <Link to="/communities" className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Communities
-                  </Link>
-                </Button>
-              </li>
+
               <li>
                 <Button
                   variant="ghost"
@@ -81,11 +70,11 @@ export const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>+27 12 345 6789</span>
+                <span>+27 69 370 1969</span>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>support@funeralaiddapp.co.za</span>
+                <span>support@funeralaidapp.co.za</span>
               </li>
               <li className="pt-4">
                 <p className="text-sm text-muted-foreground">

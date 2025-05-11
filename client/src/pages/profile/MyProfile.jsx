@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useUpdateProfile } from "@/hooks/useProfile";
 import { useBeneficiaries } from "@/hooks/useBeneficiaries";
-import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { BeneficiariesTable } from "@/pages/profile/BeneficiariesTable";
+import { BeneficiariesTable } from "@/pages/beneficiaries/BeneficiariesTable";
 import { ChangePasswordForm } from "@/pages/profile/ChangePasswordForm";
 import { AccountSettings } from "@/pages/profile/AccountSettings";
 
@@ -45,7 +45,7 @@ const profileSchema = z.object({
 export const MyProfile = () => {
   const { user } = useAuth();
   const { data: beneficiaries } = useBeneficiaries();
-  const { mutate: updateProfile, isLoading } = useUpdateProfile();
+  const { mutate: updateProfile, isPending } = useUpdateProfile();
 
   // Initialize form with user data
   const form = useForm({
@@ -65,21 +65,7 @@ export const MyProfile = () => {
   });
 
   const onSubmit = (values) => {
-    updateProfile(values, {
-      onSuccess: () => {
-        Toaster({
-          title: "Profile updated",
-          description: "Your profile has been updated successfully",
-        });
-      },
-      onError: (error) => {
-        Toaster({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
+    updateProfile(values);
   };
 
   if (!user) {
@@ -231,8 +217,8 @@ export const MyProfile = () => {
                   </div>
 
                   <CardFooter className="flex justify-end px-0 pb-0 pt-6">
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading && (
+                    <Button type="submit" disabled={isPending}>
+                      {isPending && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
                       Update Profile

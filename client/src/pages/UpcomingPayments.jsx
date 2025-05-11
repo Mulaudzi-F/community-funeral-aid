@@ -7,91 +7,109 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { CalendarDays, ArrowRight } from "lucide-react";
-import { format } from "date-fns";
+import { useUpcomingPayments } from "@/hooks/useDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CalendarDays, User, Banknote, Clock } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { PaymentButton } from "./payments/PaymentButton";
 
 export const UpcomingPayments = () => {
-  // In a real app, this would come from the API
-  const payments = [
-    {
-      id: 1,
-      amount: 15.0,
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      status: "pending",
-    },
-    {
-      id: 2,
-      amount: 15.0,
-      dueDate: new Date(Date.now() + 37 * 24 * 60 * 60 * 1000),
-      status: "upcoming",
-    },
-  ];
+  const { data: reports, isLoading, isError } = useUpcomingPayments();
+
+  console.log("Upcoming Payments", reports);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Upcoming Payments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Upcoming Payments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-destructive">Failed to load upcoming payments</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Upcoming Payments</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Banknote className="h-5 w-5" />
+          Upcoming Payments
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        {payments.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No upcoming payments</p>
+        {reports?.data.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No upcoming payments at this time
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Deceased</TableHead>
+                <TableHead>Reporter</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Action</TableHead>
+                <TableHead>Deadline</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-medium">
-                    ZAR {payment.amount.toFixed(2)}
-                  </TableCell>
+              {reports?.data.map((report) => (
+                <TableRow key={report._id}>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4" />
-                      {format(payment.dueDate, "PP")}
+                    <div className="font-medium">
+                      {report.deceased.firstName} {report.deceased.lastName}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {report.deceased.relationship}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="capitalize">{payment.status}</span>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      {report.reporter.firstName} {report.reporter.lastName}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    ZAR {report.payoutAmount.toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm">
-                      Pay Now
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      {formatDistanceToNow(new Date(report.payoutDeadline), {
+                        addSuffix: true,
+                      })}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <PaymentButton deathReportId={report._id}></PaymentButton>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
-      </CardContent>
-    </Card>
-  );
-};
-
-export const UpcomingPaymentsSkeleton = () => {
-  return (
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-8 w-1/3" />
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          {Array.from({ length: 2 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
       </CardContent>
     </Card>
   );

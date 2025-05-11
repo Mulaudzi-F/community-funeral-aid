@@ -66,8 +66,8 @@ export const ActivityFeed = () => {
       <CardContent>
         <ScrollArea className="h-[400px]">
           <div className="space-y-6">
-            {activities?.map((activity) => (
-              <div key={activity._id} className="flex items-start gap-4">
+            {activities.data?.map((activity) => (
+              <div key={activity.id} className="flex items-start gap-4">
                 <div className="flex items-center justify-center rounded-full bg-secondary p-2">
                   {activityIcons[activity.type]}
                 </div>
@@ -75,7 +75,7 @@ export const ActivityFeed = () => {
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">{activity.title}</p>
                     <time className="text-xs text-muted-foreground">
-                      {format(new Date(activity.createdAt), "MMM d, h:mm a")}
+                      {format(new Date(activity.timestamp), "MMM d, h:mm a")}
                     </time>
                   </div>
                   <p className="text-sm text-muted-foreground">
