@@ -5,13 +5,38 @@ const Section = require("../models/section");
 const Community = require("../models/community");
 const { sendEmail, sendSMS } = require("../service/notificationService");
 const { verifyDeathCertificate } = require("../service/verificationService");
+const { default: mongoose } = require("mongoose");
 
 // @desc    Create a new death report
 // @route   POST /api/death-reports
 // @access  Private
 exports.createDeathReport = async (req, res) => {
   try {
-    const { beneficiaryId, bankDetails, deathCertificate } = req.body;
+    let { beneficiaryId, bankDetails } = req.body;
+
+    const file = req.files?.deathCertificate;
+    if (typeof bankDetails === "string") {
+      bankDetails = JSON.parse(bankDetails);
+    }
+
+    // Check if a death report already exists for the beneficiary
+    const existingReport = await DeathReport.findOne({
+      deceased: beneficiaryId,
+    });
+    if (existingReport) {
+      return res.status(400).json({
+        success: false,
+        message: "A death report already exists for this beneficiary.",
+      });
+    }
+
+    // Generate a unique name and path
+    const fileName = `${Date.now()}_${file.name}`;
+    const uploadPath = `uploads/death_certificates/${fileName}`;
+
+    // Move the file
+    await file.mv(uploadPath);
+
     const userId = req.user._id;
 
     // Verify beneficiary belongs to user
@@ -26,30 +51,33 @@ exports.createDeathReport = async (req, res) => {
         .json({ message: "Beneficiary not found or does not belong to you" });
     }
 
+    beneficiary.isAlive = false;
+    beneficiary.save();
+
     // Verify age of deceased
     const age = calculateAge(beneficiary.dob);
-    if (age > 23) {
+    if (age > 25) {
       return res
         .status(400)
-        .json({ message: "Beneficiary must be under 23 years old" });
+        .json({ message: "Beneficiary must be under 25` years old" });
     }
 
     // Verify death certificate (integration with 3rd party API)
-    const verificationResults = await verifyDeathCertificate(deathCertificate);
+    /* const verificationResults = await verifyDeathCertificate(deathCertificate);
     if (!verificationResults.valid) {
       return res.status(400).json({
         message: "Death certificate verification failed",
         details: verificationResults.errors,
       });
     }
-
+*/
     // Create the death report
     const deathReport = new DeathReport({
       deceased: beneficiaryId,
       reporter: userId,
-      deathCertificate,
+      deathCertificate: uploadPath,
       bankDetails,
-      verificationData: verificationResults,
+      // verificationData: verificationResults,
     });
 
     await deathReport.save();
@@ -72,32 +100,94 @@ exports.createDeathReport = async (req, res) => {
   }
 };
 
-// @desc    Get all death reports for user's section
-// @route   GET /api/death-reports
+// @desc    Get single death report by ID
+// @route   GET /api/death-reports/:id
 // @access  Private
-exports.getSectionDeathReports = async (req, res) => {
+exports.getDeathReportById = async (req, res) => {
   try {
+    const { id } = req.params;
+
+    // Validate if the ID is a valid ObjectId
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+      });
+    }
+    const deathReport = await DeathReport.findById(id)
+      .populate("deceased", "firstName lastName relationship dob")
+      .populate("reporter", "firstName lastName section address")
+      .populate("votes.voter", "firstName lastName");
+
+    if (!deathReport) {
+      return res.status(404).json({
+        success: false,
+        message: "Death report not found",
+      });
+    }
+
+    // Check if user is authorized to view this report
+    // (either reporter, section member, or admin)
+
     const user = await User.findById(req.user._id);
+    const isReporter =
+      deathReport.reporter._id.toString() === user._id.toString();
+    const isSectionMember =
+      user.section &&
+      deathReport.reporter.section.toString() === user.section.toString();
+    const isAdmin = user.isAdmin;
 
-    // Get reports where deceased is in the same section
-    const reports = await DeathReport.find()
-      .populate({
-        path: "deceased",
-        match: { accountHolder: { $in: user.section.members } },
-        populate: { path: "accountHolder" },
-      })
-      .populate("reporter")
-      .sort({ createdAt: -1 });
+    if (!isReporter && !isSectionMember && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to view this report",
+      });
+    }
 
-    // Filter out reports with no deceased (due to the match condition)
-    const filteredReports = reports.filter(
-      (report) => report.deceased !== null
-    );
+    // Format response data
+    const responseData = {
+      _id: deathReport._id,
+      deceased: {
+        _id: deathReport.deceased._id,
+        name: `${deathReport.deceased.firstName} ${deathReport.deceased.lastName}`,
+        relationship: deathReport.deceased.relationship,
+        dob: deathReport.deceased.dob,
+      },
+      reporter: {
+        _id: deathReport.reporter._id,
+        name: `${deathReport.reporter.firstName} ${deathReport.reporter.lastName}`,
+        address: deathReport.reporter.address,
+      },
+      deathCertificate: deathReport.deathCertificate,
+      bankDetails: deathReport.bankDetails,
+      status: deathReport.status,
+      votes: deathReport.votes.map((vote) => ({
+        _id: vote._id,
+        voter: {
+          _id: vote.voter._id,
+          name: `${vote.voter.firstName} ${vote.voter.lastName}`,
+        },
+        approved: vote.approved,
+        comment: vote.comment,
+        timestamp: vote.timestamp,
+      })),
+      adminApproved: deathReport.adminApproved,
+      payoutAmount: deathReport.payoutAmount,
+      payoutDate: deathReport.payoutDate,
+      createdAt: deathReport.createdAt,
+      deadline: deathReport.deadline,
+    };
 
-    res.json(filteredReports);
+    res.json({
+      success: true,
+      data: responseData,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
 
@@ -143,7 +233,7 @@ exports.voteOnDeathReport = async (req, res) => {
     const approvalCount = deathReport.votes.filter(
       (vote) => vote.approved
     ).length;
-    if (approvalCount >= 10) {
+    if (approvalCount >= 1) {
       deathReport.status = "under-review"; // Ready for admin review
     }
 
@@ -182,21 +272,24 @@ exports.reviewDeathReport = async (req, res) => {
       // Approve the report
       deathReport.status = "approved";
       deathReport.adminApproved = true;
-
+      deathReport.payoutDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000);
       // Calculate payout amount (would be based on community rules)
       const community = await Community.findById(
         deathReport.reporter.community
       );
-      const payoutAmount = community.contributionAmount * 0.85; // 85% to family
+      const payoutAmount = community.contributionAmount; // 85% to family
 
       deathReport.payoutAmount = payoutAmount;
+      /*
 
       // Process payment (integration with payment gateway would go here)
       // This would be an async process in a real application
       await processPayout(deathReport.bankDetails, payoutAmount);
 
       deathReport.payoutDate = new Date();
-      deathReport.status = "paid";
+      deathReport.status = "paid"; 
+
+      */
 
       // Update community/section balances
       await updateCommunityBalances(
@@ -239,7 +332,7 @@ async function notifySectionMembers(members, reportId) {
       sendEmail({
         to: member.email,
         subject: "New Death Report in Your Section",
-        html: `<p>${message}</p><p>Report ID: ${reportId}</p>`,
+        html: `<p>${message}</p><p>Reported By: ${member.firstName} ${member.lastName}</p>`,
       }),
       sendSMS({
         to: member.phone,
@@ -251,18 +344,11 @@ async function notifySectionMembers(members, reportId) {
   await Promise.all(notificationPromises);
 }
 
-async function processPayout(bankDetails, amount) {
-  // Integration with PayFast/Stripe would go here
-  // This is a mock implementation
-  console.log(`Processing payout of ${amount} to ${bankDetails.accountHolder}`);
-  return new Promise((resolve) => setTimeout(resolve, 1000));
-}
-
 async function updateCommunityBalances(communityId, sectionId, payoutAmount) {
   // Update section balance
   await Section.findByIdAndUpdate(sectionId, {
     $inc: {
-      currentBalance: -payoutAmount,
+      currentBalance: payoutAmount,
       totalPayouts: payoutAmount,
     },
   });

@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const bcrypt = require("bcrypt");
 const UserSchema = new mongoose.Schema({
   firstName: {
     type: String,
@@ -36,6 +36,7 @@ const UserSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
+    select: false,
   },
   address: {
     street: String,
@@ -49,11 +50,6 @@ const UserSchema = new mongoose.Schema({
   },
   addressProof: {
     type: String, // URL to uploaded document
-    required: true,
-  },
-  idDocument: {
-    type: String, // URL to uploaded ID
-    required: true,
   },
   community: {
     type: mongoose.Schema.Types.ObjectId,
@@ -69,11 +65,9 @@ const UserSchema = new mongoose.Schema({
     type: {
       type: String,
       enum: ["credit_card", "debit_card", "bank_account", "other"],
-      required: true,
     },
     details: {
       type: Object,
-      required: true,
     },
   },
   isActive: {
@@ -94,6 +88,16 @@ const UserSchema = new mongoose.Schema({
     enum: ["active", "suspended", "banned"],
     default: "active",
   },
+  isPrimaryBeneficiary: {
+    type: Boolean,
+    default: true,
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  emailVerificationToken: String,
+  emailVerificationExpires: Date,
   createdAt: {
     type: Date,
     default: Date.now,

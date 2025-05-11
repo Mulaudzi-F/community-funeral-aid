@@ -8,11 +8,6 @@ const { protect, admin } = require("../middleware/auth");
 // @access  Private
 router.post("/", protect, deathReportController.createDeathReport);
 
-// @route   GET /api/death-reports
-// @desc    Get all death reports for the user's section
-// @access  Private
-router.get("/", protect, deathReportController.getSectionDeathReports);
-
 // @route   POST /api/death-reports/:id/vote
 // @desc    Vote on a death report
 // @access  Private
@@ -27,5 +22,7 @@ router.put(
   admin,
   deathReportController.reviewDeathReport
 );
+
+router.route("/:id").get(protect, deathReportController.getDeathReportById);
 
 module.exports = router;

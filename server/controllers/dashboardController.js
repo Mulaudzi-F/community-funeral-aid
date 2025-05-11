@@ -50,7 +50,7 @@ exports.getDashboardStats = async (req, res) => {
       success: true,
       data: {
         activeBeneficiaries,
-        maxBeneficiaries: 3, // Assuming max 3 beneficiaries per user
+        maxBeneficiaries: 7, // Assuming max 7 beneficiaries per user
         yourReports: userReports,
         pendingReports,
         nextContributionAmount: user.community.contributionAmount,
@@ -130,59 +130,35 @@ exports.getRecentActivity = async (req, res) => {
   }
 };
 
-// @desc    Get upcoming payments
-// @route   GET /api/dashboard/payments
+// @desc    Get upcoming payments for user's section
+// @route   GET /api/dashboard/upcoming-payments
 // @access  Private
 exports.getUpcomingPayments = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate(
-      "community",
-      "contributionAmount"
-    );
+    const user = await User.findById(req.user._id).populate("section");
 
-    if (!user) {
-      return res.status(404).json({
+    if (!user || !user.section) {
+      return res.status(403).json({
         success: false,
-        message: "User not found",
+        message: "User not assigned to a section",
       });
     }
 
-    // Calculate next payment date (1 month from last payment or now if no payment yet)
-    const lastPaymentDate = user.lastPaymentDate || new Date();
-    const nextPaymentDate = new Date(
-      new Date(lastPaymentDate).setMonth(lastPaymentDate.getMonth() + 1)
-    );
+    const now = new Date();
+    const cutoffDate = new Date(now.getTime() + 72 * 60 * 60 * 1000); // 72 hours from now
 
-    // Check if payment is overdue
-    const today = new Date();
-    const isOverdue = nextPaymentDate < today;
+    const reports = await DeathReport.find({
+      status: "approved",
+      //payoutDate: { $exists: false },
+      adminApproved: true,
+      payoutDeadline: { $lte: cutoffDate },
+      reporter: { $in: user.section.members },
+    })
+      .populate("deceased")
+      .populate("reporter", "firstName lastName")
+      .sort({ payoutDeadline: 1 });
 
-    // Get payment history (mock data - would come from payment service in real app)
-    const paymentHistory = [];
-    if (user.lastPaymentDate) {
-      for (let i = 0; i < 6; i++) {
-        paymentHistory.push({
-          date: new Date(new Date().setMonth(new Date().getMonth() - i)),
-          amount: user.community.contributionAmount,
-          status: "paid",
-        });
-      }
-    }
-
-    res.json({
-      success: true,
-      data: {
-        nextPayment: {
-          amount: user.community.contributionAmount,
-          dueDate: nextPaymentDate.toISOString().split("T")[0],
-          isOverdue,
-          daysRemaining: Math.ceil(
-            (nextPaymentDate - today) / (1000 * 60 * 60 * 24)
-          ),
-        },
-        paymentHistory,
-      },
-    });
+    res.json({ success: true, data: reports });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });

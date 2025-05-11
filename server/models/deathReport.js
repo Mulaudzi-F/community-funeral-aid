@@ -5,6 +5,7 @@ const DeathReportSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Beneficiary",
     required: true,
+    unique: true,
   },
   reporter: {
     type: mongoose.Schema.Types.ObjectId,
@@ -67,9 +68,18 @@ const DeathReportSchema = new mongoose.Schema({
   verificationData: {
     type: Object,
   },
-  payoutAmount: Number,
+  payoutAmount: {
+    type: Number,
+    default: 20,
+  },
   payoutDate: Date,
-  deadline: Date,
+  payoutDeadline: {
+    type: Date,
+    default: function () {
+      return new Date(Date.now() + 48 * 60 * 60 * 1000);
+    },
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,
@@ -79,6 +89,7 @@ const DeathReportSchema = new mongoose.Schema({
 // Set 24-hour deadline when report is created
 DeathReportSchema.pre("save", function (next) {
   if (this.isNew) {
+    this.payoutDate = new Date(Date.now() + 36 * 60 * 60 * 1000);
     this.deadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
   }
   next();

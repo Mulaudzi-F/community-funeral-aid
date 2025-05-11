@@ -8,7 +8,14 @@ const { sendEmail } = require("../service/notificationService");
 // @access  Public
 exports.getCommunities = async (req, res) => {
   try {
-    const communities = await Community.find()
+    const { search } = req.query;
+
+    let query = {};
+    if (search) {
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    const communities = await Community.find(query)
       .sort({ name: 1 })
       .select("-members");
 

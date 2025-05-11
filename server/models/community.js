@@ -16,7 +16,7 @@ const CommunitySchema = new mongoose.Schema(
     },
     contributionAmount: {
       type: Number,
-      default: 15,
+      default: 20,
       min: 0,
     },
     adminFeePercentage: {

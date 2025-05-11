@@ -40,6 +40,8 @@ exports.getUserBeneficiaries = async (req, res) => {
       accountHolder: req.user._id,
     }).sort({ createdAt: -1 });
 
+    console.log(beneficiaries);
+
     res.json({ success: true, data: beneficiaries });
   } catch (error) {
     console.error(error);
@@ -56,10 +58,10 @@ exports.addBeneficiary = async (req, res) => {
 
     // Verify age
     const age = calculateAge(new Date(dob));
-    if (age > 23) {
+    if (age > 24) {
       return res.status(400).json({
         success: false,
-        message: "Beneficiary must be under 23 years old",
+        message: "Beneficiary must be under 25 years old",
       });
     }
 
@@ -86,7 +88,7 @@ exports.addBeneficiary = async (req, res) => {
       idNumber,
       dob,
       relationship,
-     accountHolder: req.user._id,
+      accountHolder: req.user._id,
     });
 
     res.status(201).json({ success: true, data: beneficiary });

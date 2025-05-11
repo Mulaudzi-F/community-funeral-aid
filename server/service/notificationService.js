@@ -6,7 +6,8 @@ const Section = require("../models/section");
 
 // Email setup
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE,
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -161,4 +162,26 @@ exports.sendReportStatusUpdate = async (reportId, status, reason) => {
   } catch (error) {
     console.error("Status update error:", error);
   }
+};
+
+exports.sendVerificationEmail = async (email, verificationUrl) => {
+  const mailOptions = {
+    from: `"Community Funeral Aid" <${process.env.EMAIL_FROM}>`,
+    to: email,
+    subject: "Verify Your Email Address",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4A2C82;">Email Verification</h2>
+        <p>Please click the button below to verify your email address:</p>
+        <a href="${verificationUrl}" 
+           style="display: inline-block; padding: 10px 20px; background-color: #4A2C82; color: white; text-decoration: none; border-radius: 5px;">
+          Verify Email
+        </a>
+        <p>If you didn't request this, please ignore this email.</p>
+        <p style="font-size: 12px; color: #888;">This link will expire in 1 hour.</p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
 };

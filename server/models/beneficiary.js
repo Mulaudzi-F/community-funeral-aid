@@ -23,17 +23,21 @@ const BeneficiarySchema = new mongoose.Schema({
   },
   relationship: {
     type: String,
-    enum: ["child", "spouse"],
+    enum: ["AccountHolder", "child", "spouse"],
     required: true,
+  },
+  isPrimary: {
+    type: Boolean,
+    default: false,
   },
   accountHolder: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
-  isVerified: {
+  isAlive: {
     type: Boolean,
-    default: false,
+    default: true,
   },
   createdAt: {
     type: Date,
@@ -44,9 +48,34 @@ const BeneficiarySchema = new mongoose.Schema({
 // Age validation middleware
 BeneficiarySchema.pre("save", function (next) {
   const age = calculateAge(this.dob);
-  if (age > 23) {
-    throw new Error("Beneficiary must be under 23 years old");
+  if (this.relationship === "child" && age > 25) {
+    throw new Error("Beneficiary must be under 25 years old");
   }
+
+  if (this.relationship === "spouse") {
+    mongoose
+      .model("Beneficiary")
+      .countDocuments({
+        accountHolder: this.accountHolder,
+        relationship: "spouse",
+      })
+      .then((count) => {
+        if (count > 0) {
+          throw new Error(
+            "Account holder can only have one spouse beneficiary"
+          );
+        }
+        next();
+      })
+      .catch(next);
+  } else {
+    next();
+  }
+
+  if (this.relationship === "AccountHolder") {
+    this.isPrimary = true;
+  }
+
   next();
 });
 

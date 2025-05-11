@@ -1,21 +1,19 @@
 const express = require("express");
 const router = express.Router();
 const {
-  initiateRegistrationPayment,
-  initiateContributionPayment,
-  handlePaymentWebhook,
-  checkPaymentStatus,
+  initiateContribution,
+  handlePaymentNotification,
+  getPaymentHistory,
 } = require("../controllers/paymentController");
 const { protect } = require("../middleware/auth");
 
-// Public route for PayFast webhook
-router.post("/webhook", handlePaymentWebhook);
+// Public route for PayFast ITN
+router.post("/itn", handlePaymentNotification);
 
 // Protected routes
 router.use(protect);
 
-router.post("/register", initiateRegistrationPayment);
-router.post("/contribute", initiateContributionPayment);
-router.get("/status/:userId", checkPaymentStatus);
+router.post("/contribute/:deathReportId", initiateContribution);
+router.get("/history", getPaymentHistory);
 
 module.exports = router;

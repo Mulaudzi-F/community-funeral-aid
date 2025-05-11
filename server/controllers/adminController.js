@@ -121,7 +121,20 @@ exports.getPendingReports = async (req, res) => {
       adminApproved: false,
     })
       .populate("deceased")
-      .populate("reporter", "firstName lastName")
+      .populate({
+        path: "reporter",
+        select: "firstName lastName section community",
+        populate: [
+          {
+            path: "community",
+            select: "name",
+          },
+          {
+            path: "section",
+            select: "name",
+          },
+        ],
+      })
       .sort({ createdAt: -1 });
 
     res.json({ success: true, data: reports });
