@@ -54,8 +54,32 @@ export const AddBeneficiary = () => {
       relationship: "child",
     },
   });
+  const checkBeneficiaryAge = (dob) => {
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age;
+  };
 
   const onSubmit = (values) => {
+    const age = checkBeneficiaryAge(values.dob);
+    if (age > 25) {
+      form.setError("dob", {
+        type: "manual",
+        message: "Beneficiary must be under 23 years old at time of addition",
+      });
+      return;
+    }
+
     addBeneficiary(values, {
       onSuccess: () => {
         navigate("/profile/");

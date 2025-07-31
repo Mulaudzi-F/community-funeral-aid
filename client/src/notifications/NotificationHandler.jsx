@@ -4,8 +4,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { useSocket } from "@/contexts/SocketContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { navigate } from "@/utils/navigation";
 
 export const NotificationHandler = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const socket = useSocket();
@@ -44,6 +46,24 @@ export const NotificationHandler = () => {
       queryClient.invalidateQueries(["deathReport", data.reportId]);
     };
 
+    const handleBeneficiaryRemoved = (data) => {
+      toast({
+        title: "Beneficiary Removed",
+        description: `${data.beneficiaryName} has been removed as they reached age 25.`,
+        variant: "warning",
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/beneficiaries")}
+          >
+            View Beneficiaries
+          </Button>
+        ),
+      });
+      queryClient.invalidateQueries("beneficiaries");
+    };
+
     const handleReportApproved = (data) => {
       toast({
         title: "Report Approved",
@@ -56,13 +76,15 @@ export const NotificationHandler = () => {
     socket.on("new-death-report", handleNewDeathReport);
     socket.on("new-vote", handleNewVote);
     socket.on("report-approved", handleReportApproved);
+    socket.on("beneficiary-removed", handleBeneficiaryRemoved);
 
     return () => {
       socket.off("new-death-report", handleNewDeathReport);
       socket.off("new-vote", handleNewVote);
       socket.off("report-approved", handleReportApproved);
+      socket.off("beneficiary-removed", handleBeneficiaryRemoved);
     };
-  }, [socket, user, toast, queryClient]);
+  }, [socket, user, toast, queryClient, navigate]);
 
   return null;
 };

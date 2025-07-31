@@ -63,13 +63,12 @@ function App() {
                     {/* Protected routes */}
                     <Route element={<ProtectedRoute />}>
                       <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/communities" element={<Communities />} />
+                      <Route path="/communities" element={<Communities />} />0
                       <Route
                         path="/communities/:id"
                         element={<CommunityDetail />}
                       />
                       <Route path="/verify-email" element={<VerifyEmail />} />
-
                       {/* <Route
                         path="/communities/create"
                         element={<CreateCommunity />}

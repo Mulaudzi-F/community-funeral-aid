@@ -47,3 +47,22 @@ export const usePaymentHistory = () => {
     cacheTime: 10 * 60 * 1000,
   });
 };
+
+export const useReactivateAccount = () => {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/users/reactivate");
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success("Reactivation initiated successfully.", {
+        description: "Please complete the payment to reactivate your account.",
+      });
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Could not initiate reactivation."
+      );
+    },
+  });
+};

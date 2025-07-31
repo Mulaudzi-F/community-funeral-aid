@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  const [registrationInProgress, setRegistrationInProgress] = useState(false);
   const queryClient = useQueryClient();
   // Fetch user profile
   const { isLoading, data: user } = useQuery({
@@ -27,19 +28,23 @@ export const AuthProvider = ({ children }) => {
     retry: false,
   });
 
-  // Register mutation
   const registerMutation = useMutation({
-    mutationFn: registerApi,
-    onSuccess: (data) => {
-      localStorage.setItem("token", data.token);
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      toast.success("Registration successful. Your account has been created.");
+    mutationFn: async ({ values }) => {
+      const response = await registerApi(values);
+      return response; // Only return the user data from the API response
+    },
+    onSuccess: (response) => {
+      const data = response;
+      // Don't set token or invalidate queries here
+      // Just show success message
+      toast.success(
+        "Registration successful. Please complete the payment to activate your account."
+      );
     },
     onError: (error) => {
       toast.error(
         error.response?.data?.message ||
-          error.message ||
-          "Something went wrong."
+          "Something went wrong during registration."
       );
     },
   });
@@ -95,11 +100,27 @@ export const AuthProvider = ({ children }) => {
     },
   });
 
+  const register = async (values) => {
+    setRegistrationInProgress(true); // Set registration in progress
+    try {
+      const response = await registerMutation.mutateAsync({
+        values,
+      });
+      setRegistrationInProgress(false); // Reset after successful registration
+      return response;
+    } catch (error) {
+      setRegistrationInProgress(false); // Reset on error
+      throw error;
+    }
+  };
+
   const value = {
     user,
     isLoading,
     isRegistering: registerMutation.isPending,
-    register: registerMutation.mutateAsync,
+    register,
+    registrationInProgress,
+    setRegistrationInProgress,
     login: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
     logout: logoutMutation.mutateAsync,

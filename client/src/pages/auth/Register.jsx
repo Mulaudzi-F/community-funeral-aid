@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -36,6 +36,8 @@ import {
 import { CreateCommunityForm } from "../Communities/CreateCommunityForm";
 import { Label } from "@/components/ui/label";
 import { CreateSectionForm } from "../section/CreateSectionForm";
+import { toast } from "sonner";
+import { PaymentDialog } from "./PaymentDialogue";
 
 // Form validation schema
 const formSchema = z
@@ -67,11 +69,13 @@ const formSchema = z
 
 export const Register = () => {
   const navigate = useNavigate();
-  const { register, isRegistering } = useAuth();
+  const { register, isRegistering, registrationInProgress } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [sectionSearchTerm, setSectionSearchTerm] = useState("");
   const [showCreateCommunity, setShowCreateCommunity] = useState(false);
   const [isSectionDialogOpen, setIsSectionDialogOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentData, setPaymentData] = useState(null);
   const [newSectionName, setNewSectionName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -119,23 +123,26 @@ export const Register = () => {
     section.name.toLowerCase().includes(sectionSearchTerm.toLowerCase())
   );
 
+  console.log(paymentDialogOpen);
+
   const onSubmit = async (values) => {
     try {
       // Register the user
-      const newUser = await register(values);
+      const response = await register(values);
 
-      // Log the activity
-      const newMemberName = `${values.firstName} ${values.lastName}`;
-      await logActivity(
-        newUser._id, // Assuming `register` returns the new user's data
-        "new_member",
-        "New section member",
-        `${newMemberName} has joined your section`,
-        { memberId: newUser._id }
-      );
+      // Set payment data first
+      setPaymentData({
+        paymentUrl: response.paymentUrl,
+        reference: response.paymentReference,
+        amount: 40,
+        description: "Account activation fee",
+      });
 
-      // Navigate to the email verification page
-      navigate("/verify-email");
+      // Then open the payment dialog
+      setPaymentDialogOpen(true);
+
+      // Prevent form submission from causing a page reload
+      return false;
     } catch (error) {
       console.error("Registration error:", error);
       form.setError("root", {
@@ -143,6 +150,18 @@ export const Register = () => {
         message: error.message || "Registration failed",
       });
     }
+  };
+  if (registrationInProgress) {
+    return <div>Completing registration...</div>;
+  }
+
+  const handlePaymentComplete = () => {
+    toast("Payment successful", {
+      description: "Your account will be activated shortly.",
+    });
+    setPaymentDialogOpen(false);
+    // Navigate to verify email after payment is complete
+    navigate("/verify-email");
   };
 
   // Handle community creation success
@@ -631,12 +650,18 @@ export const Register = () => {
                       Registering...
                     </>
                   ) : (
-                    "Register"
+                    "Register (R40 Activation Fee)"
                   )}
                 </Button>
               </div>
             </form>
           </Form>
+          <PaymentDialog
+            open={paymentDialogOpen}
+            onOpenChange={setPaymentDialogOpen}
+            paymentData={paymentData}
+            onComplete={handlePaymentComplete}
+          />
         </CardContent>
       </Card>
     </div>

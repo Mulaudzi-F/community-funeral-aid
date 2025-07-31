@@ -43,8 +43,6 @@ const baseURL = import.meta.env.VITE_API_URL;
 
 export function DeathReportReview({ report }) {
   const { register, handleSubmit, reset } = useForm();
-  console.log(report);
-  // Mutation for approving/rejecting report
   const { mutate: reviewReport, isPending } = useAdminReportReview();
 
   const onSubmit = (data) => {
@@ -369,6 +367,60 @@ export function DeathReportReview({ report }) {
                 </CardContent>
               </Card>
             )}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Payment Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Payout Deadline</Label>
+                    <p className={isDeadlinePassed ? "text-destructive" : ""}>
+                      {formatDate(report.payoutDeadline)}
+                      {isDeadlinePassed && " (Passed)"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Payout Status</Label>
+                    <p>
+                      {report.paidAt
+                        ? `Paid on ${formatDate(report.paidAt)}`
+                        : "Pending"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Label>Member Contributions</Label>
+                  <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+                    {report.contributions?.map((contribution, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 border rounded"
+                      >
+                        <span>
+                          {contribution.member.firstName}{" "}
+                          {contribution.member.lastName}
+                        </span>
+                        <Badge
+                          variant={
+                            contribution.status === "paid"
+                              ? "success"
+                              : contribution.status === "late"
+                              ? "warning"
+                              : contribution.status === "missed"
+                              ? "destructive"
+                              : "outline"
+                          }
+                        >
+                          {contribution.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </ScrollArea>
       </DialogContent>

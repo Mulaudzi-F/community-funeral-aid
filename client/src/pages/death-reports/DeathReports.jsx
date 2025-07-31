@@ -1,23 +1,23 @@
 import { useState } from "react";
-import { DeathReportCard } from "./DeathReportCard";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSectionReports } from "@/hooks/useSections";
+import { DeathReportCard } from "./DeathReportCard";
 import { useAuth } from "@/contexts/useAuth";
+import { useSectionReports } from "@/hooks/useSections";
 
 export const DeathReports = () => {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState("all");
   const { user } = useAuth();
+  const [filter, setFilter] = useState("all");
   const {
     section: { _id: sectionId },
   } = user;
   const { data: reports, isLoading, isError } = useSectionReports(sectionId);
-
+  console.log("Death Reports", reports);
   if (isLoading) {
     return (
       <div className="container py-8">
@@ -48,9 +48,22 @@ export const DeathReports = () => {
     );
   }
 
-  const filteredReports = reports.data?.filter((report) => {
+  // Filter reports based on status and payment deadlines
+  const filteredReports = reports?.data.filter((report) => {
+    const now = new Date();
+    const isDeadlinePassed = now > new Date(report.payoutDeadline);
+
     if (filter === "all") return true;
-    return report.status === filter;
+    if (filter === "pending") return report.status === "pending";
+    if (filter === "approved") return report.status === "approved";
+    if (filter === "paid") return report.status === "paid";
+    if (filter === "unpaid") {
+      return report.status === "approved" && !isDeadlinePassed;
+    }
+    if (filter === "overdue") {
+      return report.status === "approved" && isDeadlinePassed;
+    }
+    return true;
   });
 
   return (
@@ -68,9 +81,9 @@ export const DeathReports = () => {
           <TabsList className="grid grid-cols-5 w-full md:w-auto">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="under-review">Under Review</TabsTrigger>
             <TabsTrigger value="approved">Approved</TabsTrigger>
-            <TabsTrigger value="paid">Paid</TabsTrigger>
+            <TabsTrigger value="unpaid">Unpaid</TabsTrigger>
+            <TabsTrigger value="overdue">Overdue</TabsTrigger>
           </TabsList>
         </Tabs>
 
