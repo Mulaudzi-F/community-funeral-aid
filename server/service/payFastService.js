@@ -3,6 +3,8 @@ const axios = require("axios");
 const Payment = require("../models/payment");
 const DeathReport = require("../models/deathReport");
 const { sendPaymentNotification } = require("./notificationService");
+const User = require("../models/user");
+const Section = require("../models/section");
 
 const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID;
 const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY;
@@ -55,7 +57,7 @@ exports.initiateFuneralContribution = async (userId, deathReportId) => {
     const paymentData = {
       merchant_id: PAYFAST_MERCHANT_ID,
       merchant_key: PAYFAST_MERCHANT_KEY,
-      return_url: "https://sandbox.payfast.co.za/return",
+      return_url: `${process.env.FRONTEND_URL}/login`,
       cancel_url: "https://sandbox.payfast.co.za/cancel",
       notify_url: "https://sandbox.payfast.co.za/notify",
       // return_url: `${process.env.FRONTEND_URL}/payments/success`,
@@ -95,9 +97,58 @@ exports.initiateFuneralContribution = async (userId, deathReportId) => {
   }
 };
 
+// Process payment with PayFast
+// This function is used to generate the payment URL for PayFast when actiating user account
+exports.processPayment = async (paymentData) => {
+  const baseData = {
+    merchant_id: PAYFAST_MERCHANT_ID,
+    merchant_key: PAYFAST_MERCHANT_KEY,
+    return_url: `${process.env.FRONTEND_URL}/login`,
+    cancel_url: "https://sandbox.payfast.co.za/cancel",
+    notify_url: `${process.env.BACKEND_URL}/api/payments/webhook`,
+    email_address: paymentData.email || "",
+    amount: paymentData.amount.toString(),
+    item_name: paymentData.item_name,
+    item_description: paymentData.item_description || "",
+    m_payment_id: `${generateNumericHash(paymentData.m_payment_id)}`,
+    custom_str1: `${generateNumericHash(paymentData.custom_str1 || "")}`,
+  };
+
+  //baseData.signature = generateSignature(baseData);
+
+  return `${PAYFAST_URL}?${new URLSearchParams(baseData).toString()}`;
+};
+
+// Verify PayFast payment
+exports.verifyPayFastPayment = async (data) => {
+  try {
+    const response = await axios.post(PAYFAST_ITN_URL, data, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    return response.data === "VALID";
+  } catch (error) {
+    console.error("PayFast verification error:", error);
+    return false;
+  }
+};
+
 // Handle PayFast ITN (Instant Transaction Notification)
 exports.handleITN = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
+    // Validate input
+    if (!data.m_payment_id || !data.payment_status || !data.amount) {
+      throw new Error("Invalid data received from PayFast");
+    }
+    if (isNaN(data.amount) || data.amount <= 0) {
+      throw new Error("Invalid payment amount");
+    }
+
     // Verify the signature
     const signature = generateSignature(data);
     if (signature !== data.signature) {
@@ -124,7 +175,7 @@ exports.handleITN = async (data) => {
       throw new Error("Payment record not found");
     }
 
-    // Update payment status based on PayFast status
+    // Update payment status
     let status;
     switch (data.payment_status) {
       case "COMPLETE":
@@ -143,20 +194,81 @@ exports.handleITN = async (data) => {
     payment.status = status;
     payment.paymentData = data;
     payment.completedAt = new Date();
-    await payment.save();
+    await payment.save({ session });
 
-    // Update death report if payment is completed
     if (status === "completed") {
-      await DeathReport.findByIdAndUpdate(payment.deathReport, {
-        $inc: { paidAmount: 20.0 },
-      });
+      const userId = payment.user._id;
+      const report = await DeathReport.findById(payment.deathReport).populate(
+        "contributions.member"
+      );
 
-      // Send notification to reporter
-      await sendPaymentNotification(payment.user, payment.deathReport, 20.0);
+      if (!report) {
+        throw new Error("Death report not found");
+      }
+
+      const user = await User.findById(userId).select("section");
+      if (!user.section) {
+        throw new Error("User not in a section");
+      }
+
+      const section = await Section.findById(user.section).populate(
+        "community",
+        "contributionAmount adminFeePercentage"
+      );
+
+      const now = new Date();
+      const isLate = now > report.payoutDeadline;
+      const contributionAmount = section.community.contributionAmount;
+      const adminFee = data.amount - contributionAmount;
+
+      await DeathReport.updateOne(
+        { _id: report._id, "contributions.member": userId },
+        {
+          $set: {
+            "contributions.$.status": isLate ? "late" : "paid",
+            "contributions.$.paidAt": now,
+            "contributions.$.amount": contributionAmount,
+          },
+        },
+        { upsert: true, session }
+      );
+
+      section.currentBalance += contributionAmount;
+      section.totalContributions += contributionAmount;
+      section.community.currentBalance += adminFee;
+
+      await Promise.all([
+        section.save({ session }),
+        section.community.save({ session }),
+      ]);
+
+      await User.findByIdAndUpdate(
+        userId,
+        {
+          lastPaymentDate: now,
+          $inc: { strikes: -1 },
+        },
+        { session }
+      );
+
+      try {
+        await sendPaymentNotification(
+          payment.user,
+          payment.deathReport,
+          contributionAmount
+        );
+      } catch (error) {
+        console.error("Failed to send payment notification:", error);
+      }
     }
+
+    await session.commitTransaction();
+    session.endSession();
 
     return { success: true, payment };
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("ITN handling error:", error);
     throw error;
   }

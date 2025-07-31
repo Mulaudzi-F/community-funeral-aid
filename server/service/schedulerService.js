@@ -4,17 +4,25 @@ const {
   processLatePayments,
   closeVotingPeriods,
   processApprovedPayouts,
+  updateReportStatuses,
 } = require("./taskService");
+const { cleanupAgedBeneficiaries } = require("./beneficiaryCleanupService");
+const { checkMissedPayments } = require("../controllers/userController");
 
 // Function to initialize scheduled jobs
 const initializeScheduledJobs = () => {
   console.log("Initializing scheduled jobs...");
 
   // Schedule daily tasks at 8am
-  cron.schedule("0 8 * * *", async () => {
+  cron.schedule("0 0 * * *", async () => {
     console.log("Running daily scheduled tasks...");
 
     try {
+      // Check for missed payments
+      await checkMissedPayments();
+
+      // Cleanup beneficiaries over 25 years old
+      await cleanupAgedBeneficiaries();
       // Send payment reminders
       await sendPaymentReminders();
 
@@ -27,6 +35,7 @@ const initializeScheduledJobs = () => {
       // Process approved payouts
       await processApprovedPayouts();
 
+      await updateReportStatuses();
       console.log("Daily tasks completed");
     } catch (error) {
       console.error("Scheduled task error:", error);

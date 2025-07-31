@@ -79,7 +79,19 @@ const DeathReportSchema = new mongoose.Schema({
       return new Date(Date.now() + 48 * 60 * 60 * 1000);
     },
   },
-
+  paidAt: Date,
+  contributions: [
+    {
+      member: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      amount: Number,
+      paidAt: Date,
+      status: {
+        type: String,
+        enum: ["pending", "paid", "late", "missed"],
+        default: "pending",
+      },
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

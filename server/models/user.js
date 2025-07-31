@@ -85,7 +85,7 @@ const UserSchema = new mongoose.Schema({
   lastPaymentDate: Date,
   status: {
     type: String,
-    enum: ["active", "suspended", "banned"],
+    enum: ["active", "suspended", "banned", "pending"],
     default: "active",
   },
   isPrimaryBeneficiary: {

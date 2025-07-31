@@ -6,10 +6,14 @@ const {
 } = require("../service/notificationService");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
+const Payment = require("../models/Payment");
+const { processPayment } = require("../service/payFastService");
+const { generateReference } = require("../utils/helper");
 const section = require("../models/section");
 const beneficiary = require("../models/beneficiary");
+const ActivationPayment = require("../models/activationPayment");
 
-// @desc    Register a new user
+// @desc    Register a new user (initial step before payment)
 // @route   POST /api/auth/register
 // @access  Public
 exports.register = async (req, res) => {
@@ -24,10 +28,6 @@ exports.register = async (req, res) => {
     communityId,
     sectionId,
     address,
-    paymentMethod,
-    addressProof,
-    idDocument,
-    isAdmin,
   } = req.body;
 
   try {
@@ -43,7 +43,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "ID number already registered" });
     }
 
-    // Create user (initially inactive)
+    // Create inactive user (will be activated after payment)
     const user = await User.create({
       firstName,
       lastName,
@@ -55,43 +55,38 @@ exports.register = async (req, res) => {
       community: communityId,
       section: sectionId,
       address,
-      paymentMethod,
-      addressProof,
-      idDocument,
-      isAdmin,
-      isActive: false, // Will be activated after payment
-    });
-    await beneficiary.create({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      idNumber: user.idNumber,
-      dob: user.dob,
-      relationship: "AccountHolder",
-      accountHolder: user._id,
-      isAlive: true,
+      isActive: false,
+      status: "pending",
     });
 
-    const userSection = await section.findById(user.section);
+    // Generate payment reference
+    const paymentReference = generateReference("ACT");
 
-    userSection.members.push(user._id);
-    await userSection.save();
-
-    // Process payment (integration with PayFast/Stripe would go here)
-    // This would be handled by the frontend typically
-
-    // Send verification email
-    await sendEmail({
-      to: email,
-      subject: "Welcome to Community Funeral Aid",
-      html: `<p>Thank you for registering. Please complete your registration by making the initial payment.</p>`,
+    // Create payment record
+    const payment = await ActivationPayment.create({
+      user: user._id,
+      amount: 40,
+      reference: paymentReference,
+      purpose: "account-activation",
+      status: "pending",
     });
+
+    // Initiate PayFast payment
+    const paymentData = {
+      amount: 40,
+      item_name: "Account Activation Fee",
+      item_description: "Initial account activation payment",
+      m_payment_id: paymentReference,
+      custom_str1: user._id.toString(),
+    };
+
+    const paymentUrl = await processPayment(paymentData);
 
     res.status(201).json({
-      _id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      isActive: user.isActive,
+      success: true,
+      message: "User registered. Proceed to payment.",
+      paymentUrl,
+      paymentReference,
     });
   } catch (error) {
     console.error(error);
@@ -324,5 +319,90 @@ exports.verifyEmail = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.redirect(`${process.env.FRONTEND_URL}/verify-email?success=false`);
+  }
+};
+
+// @desc    Handle PayFast payment notification (webhook)
+// @route   POST /api/payments/webhook
+// @access  Public
+exports.handlePaymentWebhook = async (req, res) => {
+  try {
+    const { payment_status, m_payment_id, custom_str1 } = req.body;
+
+    // Verify the payment with PayFast
+    const isValid = await verifyPayFastPayment(req.body);
+    if (!isValid) {
+      return res.status(400).send("Invalid payment");
+    }
+
+    // Find the payment record
+    const payment = await Payment.findOne({ reference: m_payment_id });
+    if (!payment) {
+      return res.status(404).send("Payment record not found");
+    }
+
+    // Find the user
+    const user = await User.findById(custom_str1);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    if (payment_status === "COMPLETE") {
+      // Update payment record
+      payment.status = "completed";
+      payment.paymentDate = new Date();
+      await payment.save();
+
+      // Activate user account based on payment purpose
+      if (payment.purpose === "account-activation") {
+        user.isActive = true;
+        user.status = "active";
+        user.activationDate = new Date();
+        await user.save();
+
+        await sendEmail({
+          to: user.email,
+          subject: "Account Activated",
+          html: `<p>Your account has been successfully activated. Welcome to Community Funeral Aid!</p>`,
+        });
+      } else if (payment.purpose === "reactivation") {
+        user.status = "active";
+        await user.save();
+
+        await sendEmail({
+          to: user.email,
+          subject: "Account Reactivated",
+          html: `<p>Your account has been reactivated. You can now access all services.</p>`,
+        });
+      }
+    }
+
+    res.status(200).send("OK");
+  } catch (error) {
+    console.error("Payment webhook error:", error);
+    res.status(500).send("Server error");
+  }
+};
+
+// @desc    Check payment status
+// @route   GET /api/payments/status/:reference
+// @access  Public
+exports.checkPaymentStatus = async (req, res) => {
+  try {
+    const payment = await ActivationPayment.findOne({
+      reference: req.params.reference,
+    });
+    if (!payment) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Payment not found" });
+    }
+
+    console.log(payment);
+
+    res.json({ success: true, data: payment });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

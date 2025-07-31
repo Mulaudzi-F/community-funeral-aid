@@ -3,6 +3,14 @@ const User = require("../models/user");
 const { calculateAge } = require("../utils/helper");
 const { verifyIDNumber } = require("../service/verificationService");
 
+exports.checkBeneficiaryAge = async (beneficiaryId) => {
+  const beneficiary = await Beneficiary.findById(beneficiaryId);
+  if (!beneficiary) return { shouldDelete: false };
+
+  const age = calculateAge(beneficiary.dob);
+  return { shouldDelete: age >= 25, beneficiary };
+};
+
 // @desc    Get beneficiary by ID
 // @route   GET /api/beneficiaries/:id
 // @access  Private

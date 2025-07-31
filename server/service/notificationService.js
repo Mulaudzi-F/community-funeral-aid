@@ -185,3 +185,28 @@ exports.sendVerificationEmail = async (email, verificationUrl) => {
 
   await transporter.sendMail(mailOptions);
 };
+
+// Send payment confirmation
+exports.sendPaymentConfirmation = async (userId, amount, reportId) => {
+  const user = await User.findById(userId);
+  const report = await DeathReport.findById(reportId).populate("deceased");
+
+  await sendEmail({
+    to: user.email,
+    subject: "Contribution Payment Received",
+    html: `
+      <p>Thank you for your contribution of ZAR ${amount.toFixed(2)}</p>
+      <p>This payment will help support the funeral costs for ${
+        report.deceased.firstName
+      } ${report.deceased.lastName}.</p>
+      <p>Your account has been updated accordingly.</p>
+    `,
+  });
+
+  await sendSMS({
+    to: user.phone,
+    body: `Payment of ZAR ${amount.toFixed(2)} received for ${
+      report.deceased.firstName
+    }'s funeral. Thank you.`,
+  });
+};

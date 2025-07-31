@@ -84,5 +84,6 @@ function calculateAge(birthdate) {
   const ageDate = new Date(diff);
   return Math.abs(ageDate.getUTCFullYear() - 1970);
 }
-
+// Add index for age-based queries
+BeneficiarySchema.index({ dob: 1 });
 module.exports = mongoose.model("Beneficiary", BeneficiarySchema);

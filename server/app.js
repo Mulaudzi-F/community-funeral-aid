@@ -53,9 +53,18 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
 });
 app.use(limiter);
+
+const allowedOrigins = ["http://localhost:5173", "http://localhost:8081"];
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)
   })
 );

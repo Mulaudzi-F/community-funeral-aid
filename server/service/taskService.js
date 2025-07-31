@@ -134,3 +134,33 @@ exports.processApprovedPayouts = async () => {
     console.error("Payout processing error:", error);
   }
 };
+
+exports.updateReportStatuses = async () => {
+  const now = new Date();
+
+  // Move approved reports with passed deadline to "paid"
+  await DeathReport.updateMany(
+    {
+      status: "approved",
+      payoutDeadline: { $lt: now },
+      paidAt: { $exists: false },
+    },
+    {
+      $set: { status: "paid", paidAt: now },
+    }
+  );
+
+  // Mark missed contributions
+  await DeathReport.updateMany(
+    {
+      payoutDeadline: { $lt: now },
+      "contributions.status": "pending",
+    },
+    {
+      $set: { "contributions.$[elem].status": "missed" },
+    },
+    {
+      arrayFilters: [{ "elem.status": "pending" }],
+    }
+  );
+};
