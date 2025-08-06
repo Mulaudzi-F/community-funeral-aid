@@ -140,6 +140,7 @@ exports.initiateContribution = async (req, res) => {
 // @route   POST /api/payments/itn
 // @access  Public
 exports.handlePaymentNotification = async (req, res) => {
+  console.log("Raw ITN data:", req.body);
   try {
     const result = await handleITN(req.body);
     res.status(200).send("OK");
