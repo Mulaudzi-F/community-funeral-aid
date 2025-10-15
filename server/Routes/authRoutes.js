@@ -13,11 +13,11 @@ router.post("/logout", protect, authController.logout);
 // Route to get the current logged-in user's details
 router.get("/me", protect, authController.getUserProfile);
 
-router.post(
-  "/send-verification",
-  protect,
-  authController.sendVerificationEmail
-);
-router.get("/verify-email", authController.verifyEmail);
+// router.post(
+//   "/send-verification",
+//   protect,
+//   authController.sendVerificationEmail
+// );
+// router.get("/verify-email", authController.verifyEmail);
 
 module.exports = router;

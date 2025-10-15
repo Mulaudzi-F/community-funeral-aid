@@ -56,16 +56,17 @@ exports.register = async (req, res) => {
       section: sectionId,
       address,
       isActive: false,
-      status: "pending",
+      status:'active'
+     // status: "pending",
     });
 
     // Generate payment reference
-    const paymentReference = generateReference("ACT");
+     const paymentReference = generateReference("ACT");
 
     // Create payment record
     const payment = await ActivationPayment.create({
       user: user._id,
-      amount: 40,
+      amount: 50,
       reference: paymentReference,
       purpose: "account-activation",
       status: "pending",
@@ -73,7 +74,7 @@ exports.register = async (req, res) => {
 
     // Initiate PayFast payment
     const paymentData = {
-      amount: 40,
+      amount: 50,
       item_name: "Account Activation Fee",
       item_description: "Initial account activation payment",
       m_payment_id: paymentReference,
@@ -253,6 +254,8 @@ exports.changePassword = async (req, res) => {
 //@desc    Send verification email
 // @route   POST /api/auth/send-verification
 // @access  Private
+
+/*
 exports.sendVerificationEmail = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -290,9 +293,13 @@ exports.sendVerificationEmail = async (req, res) => {
   }
 };
 
+*/
+
 // @desc    Verify email
 // @route   GET /api/auth/verify-email
 // @access  Public
+
+/*
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
@@ -321,6 +328,8 @@ exports.verifyEmail = async (req, res) => {
     res.redirect(`${process.env.FRONTEND_URL}/verify-email?success=false`);
   }
 };
+
+*/
 
 // @desc    Handle PayFast payment notification (webhook)
 // @route   POST /api/payments/webhook

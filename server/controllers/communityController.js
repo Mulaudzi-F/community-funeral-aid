@@ -70,7 +70,7 @@ exports.createCommunity = async (req, res) => {
     const community = await Community.create({
       name,
       description,
-      contributionAmount: contributionAmount || 15,
+      contributionAmount: contributionAmount || 25,
       adminFeePercentage: adminFeePercentage || 20,
     });
 
