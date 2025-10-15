@@ -68,7 +68,8 @@ function App() {
                         path="/communities/:id"
                         element={<CommunityDetail />}
                       />
-                      <Route path="/verify-email" element={<VerifyEmail />} />
+                     { /*<Route path="/verify-email" element={<VerifyEmail />} />*/}
+                     
                       {/* <Route
                         path="/communities/create"
                         element={<CreateCommunity />}

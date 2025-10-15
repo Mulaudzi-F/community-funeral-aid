@@ -59,7 +59,7 @@ export function PaymentDialog({ open, onOpenChange, paymentData, onComplete }) {
           <DialogTitle>Complete Your Payment</DialogTitle>
           <DialogDescription>
             {status === "pending"
-              ? "Please complete the R40 payment to activate your account."
+              ? "Please complete the R50 payment to activate your account."
               : "Your payment has been successfully processed!"}
           </DialogDescription>
         </DialogHeader>

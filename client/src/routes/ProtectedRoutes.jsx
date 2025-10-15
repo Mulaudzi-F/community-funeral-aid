@@ -15,13 +15,13 @@ export const ProtectedRoute = () => {
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
-  if (
-    user &&
-    !user.isEmailVerified &&
-    !location.pathname.startsWith("/verify-email")
-  ) {
-    return <Navigate to="/verify-email" replace state={{ from: location }} />;
-  }
+  // if (
+  //   user &&
+  //   !user.isEmailVerified &&
+  //   !location.pathname.startsWith("/verify-email")
+  // ) {
+  //   return <Navigate to="/verify-email" replace state={{ from: location }} />;
+  // }
 
   return <Outlet />;
 };

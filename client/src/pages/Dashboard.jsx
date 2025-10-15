@@ -130,9 +130,9 @@ export const Dashboard = () => {
             <div className="text-2xl font-bold">
               ZAR {stats.data.nextContributionAmount}
             </div>
-            <p className="text-xs text-muted-foreground">
+            {/* <p className="text-xs text-muted-foreground">
               Due {stats.data.nextContributionDate}
-            </p>
+            </p> */}
           </CardContent>
         </Card>
       </div>

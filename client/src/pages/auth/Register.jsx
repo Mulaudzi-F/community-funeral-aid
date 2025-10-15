@@ -650,7 +650,7 @@ export const Register = () => {
                       Registering...
                     </>
                   ) : (
-                    "Register (R40 Activation Fee)"
+                    "Register (R50 Activation Fee)"
                   )}
                 </Button>
               </div>

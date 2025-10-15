@@ -18,7 +18,6 @@ import { PaymentButton } from "./payments/PaymentButton";
 export const UpcomingPayments = () => {
   const { data: reports, isLoading, isError } = useUpcomingPayments();
 
-  console.log("Upcoming Payments", reports);
 
   if (isLoading) {
     return (
