@@ -54,8 +54,13 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-const allowedOrigins = ["commununity-funeral-lu346oo84-fhatuwani-mulaudzis-projects.vercel.app"
-  /*"http://localhost:5173", "http://localhost:8081"*/];
+const allowedOrigins = [
+  "https://community-aid-app-2-p64vfch9h-fhatuwani-mulaudzis-projects.vercel.app",
+  "https://community-aid-app-2-fhatuwani-mulaudzis-projects.vercel.app",
+  "https://community-aid-app-2-mulaudzi-f-fhatuwani-mulaudzis-projects.vercel.app",
+  "http://localhost:5173", 
+  "http://localhost:8081"
+];
 app.use(
   cors({
     origin: function (origin, callback) {
