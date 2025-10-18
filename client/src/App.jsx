@@ -14,7 +14,7 @@ import { PublicRoute } from "./routes/PublicRoute";
 // Layout components
 import { Header } from "./layout/Headers";
 import { Footer } from "./layout/Footer";
-import { Alert } from "./components/ui/Alert";
+import { Alert } from "./components/ui/alert";
 import { Toaster } from "@/components/ui/sonner";
 // Pages
 import { Home } from "./pages/Home";

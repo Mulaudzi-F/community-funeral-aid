@@ -14,4 +14,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["crypto", "etag", "cookie-signature"],
   },
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+  },
+  base: "/",
 });
