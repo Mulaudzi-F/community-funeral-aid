@@ -56,7 +56,7 @@ app.use(limiter);
 
 const allowedOrigins = [
   "https://community-aid-app-2-p64vfch9h-fhatuwani-mulaudzis-projects.vercel.app",
-  "https://community-aid-app-2-fhatuwani-mulaudzis-projects.vercel.app",
+  "https://delicate-centaur-2db5d3.netlify.app",
   "https://community-aid-app-2-mulaudzi-f-fhatuwani-mulaudzis-projects.vercel.app",
   "http://localhost:5173", 
   "http://localhost:8081"
