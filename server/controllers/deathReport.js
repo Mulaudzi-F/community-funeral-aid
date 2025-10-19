@@ -32,10 +32,20 @@ exports.createDeathReport = async (req, res) => {
 
     // Generate a unique name and path
     const fileName = `${Date.now()}_${file.name}`;
+    const tempPath = path.join('/tmp', fileName);
+
+// Move the file to /tmp
+await file.mv(tempPath);
+
+
+    /**
+     *  This is temporarly commented out due to causing bug in production when deployed in vercel
+    
     const uploadPath = `uploads/death_certificates/${fileName}`;
 
     // Move the file
     await file.mv(uploadPath);
+    */
 
     const userId = req.user._id;
 
