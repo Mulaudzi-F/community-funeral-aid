@@ -12,7 +12,7 @@ Below are key pages from the **Community Funeral Aid** platform showcasing the u
 
 | Register | Login | Home Page |
 |-----------|--------|------------|
-| ![Register Page](./client/src/assets/register.png) | ![Login Page](./client/src/assets/login.png) | ![Home Page]("./client/src/assets/home page.png") |
+| ![Register Page](./client/src/assets/register.png) | ![Login Page](./client/src/assets/login.png) | ![Home Page](./client/src/assets/home%20page.png) |
 
 | Dashboard | Add Beneficiary | Add Death Report | Add Community |
 |------------|----------------|------------------|
