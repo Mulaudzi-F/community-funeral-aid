@@ -1,90 +1,99 @@
-# Community Funeral Aid - Project Documentation
+# 🕊️ Community Funeral Aid
 
-## Table of Contents
+**Community Funeral Aid** is a full-stack web application that helps community members contribute funds to support each other during bereavements. The platform manages contributions, beneficiaries, payments, and verifications — bringing transparency and automation to community-based funeral aid systems.
 
-1. [Project Overview](#project-overview)
-2. [Core Features](#core-features)
-3. [Technical Architecture](#technical-architecture)
-4. [Database Schema](#database-schema)
-5. [API Endpoints](#api-endpoints)
-6. [Workflows](#workflows)
-7. [Security Considerations](#security-considerations)
-8. [Third-Party Integrations](#third-party-integrations)
-9. [Testing Strategy](#testing-strategy)
-10. [Deployment Plan](#deployment-plan)
+🔗 **Live Demo:** [Community Funeral Aid](https://delicate-centaur-2db5d3.netlify.app/)
 
-## Project Overview
+---
 
-A mutual aid platform where community members contribute small amounts to support families who have lost loved ones. The system organizes users into communities and sections for targeted support.
+## 📸 Preview
 
-**Key Objectives:**
+Below are key pages from the **Community Funeral Aid** platform showcasing the user experience — from registration to reporting and managing community contributions.
 
-- Facilitate funeral expense contributions within trusted networks
-- Prevent fraud through multi-layer verification
-- Automate payment flows and notifications
-- Provide transparency through reporting
+| Register | Login | Home Page |
+|-----------|--------|------------|
+| ![Register Page](./client/src/assets/register.png) | ![Login Page](./client/src/assets/login.png) | ![Home Page](./client/src/assets/home page.png) |
 
-## Core Features
+| Dashboard | Add Beneficiary | Add Death Report | Add Community |
+|------------|----------------|------------------|
+| ![Dashboard](./client/src/assets/dashboard.png) | ![Add Beneficiary](./client/src/assets/add beneficiary.png) | ![Add Death Report](./client/src/assets/add death report.png) | ![Add Community](./client/src/assets/add community.png) |
 
-### 1. Community Structure
+| Death Report List | Death Reports Page |
+|--------------------|--------------------|
+| ![Death Report List](./client/src/assets/death reports list.png) | ![Death Reports Page](./client/src/assets/death reports view.png) |
 
-```mermaid
-graph TD
-    A[Platform] --> B[Communities]
-    B --> C[Sections]
-    C --> D[Members]
 
-```
 
-# Technical Architecture
+## 🚀 Features
 
-## Frontend
+### 👥 Member Management
+- Users can register, verify their identity, and join community sections.
+- Each user can add up to **7 beneficiaries**.
+- Users can update their profile information and manage contact details.
 
-- **Framework:** React 18
-- **UI Library:** shadcn/ui + Tailwind CSS
-- **State Management:** React Query
-- **Routing:** React Router 7
-- **Real-time:** Socket.IO
+### ⚰️ Funeral Contributions
+- Members contribute **R25** when a community member or their beneficiary passes away.
+- A portion (**R3–R5**) of each contribution is retained by the platform as revenue.
+- Contribution tracking and notifications for each funeral event.
 
-## Backend
+### 💸 Payments & Activation
+- New members pay a **R50 activation fee** to join.
+- If a user misses 2 funeral contributions:
+  - Their account is **deactivated**.
+  - They must pay **R50 reactivation fee**.
+  - A **1-month waiting period** applies before reactivation.
+- Payments are processed securely using **PayFast** with **ITN (Instant Transaction Notification)** integration.
 
-- **Runtime:** Node.js 20
-- **Framework:** Express.js
-- **Database:** MongoDB Atlas
-- **ODM:** Mongoose
-- **Authentication:** JWT + bcrypt
+### 🧾 Verification System
+- **VerifyIT API** is integrated for:
+  - **ID verification**
+  - **Death certificate validation**
 
-# Third-Party Integrations
+### 🏢 Business & Advertising
+- Funeral businesses can **advertise** to communities.
+- Advertising rates are determined based on **community member count**.
 
-| Service          | Purpose                        |
-| ---------------- | ------------------------------ |
-| PayFast          | Payment processing             |
-| Twilio           | SMS notifications              |
-| Home Affairs API | Death certificate verification |
-| AWS S3           | Document storage               |
+### 🔔 Notifications
+- Members receive **SMS** and **email alerts** for:
+  - New funeral contributions
+  - Missed payments
+  - Activation status updates
 
-# Deployment Infrastructure
+---
 
-| Component    | Platform                   |
-| ------------ | -------------------------- |
-| Frontend     | Vercel                     |
-| Backend      | AWS Elastic Beanstalk      |
-| Database     | MongoDB Atlas (M2 cluster) |
-| File Storage | AWS S3                     |
+## 🧰 Tech Stack
 
-# Fraud Prevention
+| Layer | Technology |
+|-------|-------------|
+| **Frontend** | React or Angular |
+| **Backend** | Node.js + Express |
+| **Database** | MongoDB / MariaDB |
+| **Payments** | PayFast API |
+| **Verification** | VerifyIT API |
+| **Notifications** | Email + SMS Integration |
+| **Authentication** | JWT-based auth system |
 
-- Cross-verify death certificates with Home Affairs API
-- Require 10+ member approvals
-- Admin final verification
-- Payment threshold limits
+---
 
-# CI/CD Pipeline
+## ⚙️ Installation
 
-1. Linting (ESLint)
-2. Type checking (TypeScript)
-3. Run unit tests
-4. Build artifacts
-5. Deploy to staging
-6. Manual approval step
-7. Deploy to production
+### Prerequisites
+- Node.js v18+  
+- npm or yarn  
+- MongoDB  
+- PayFast and VerifyIT credentials  
+
+### Setup
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/community-funeral-aid.git
+
+# Navigate into the project folder
+cd community-funeral-aid
+
+# Install dependencies
+npm install
+
+# Create a .env file and add your configuration
+cp .env.example .env
+
