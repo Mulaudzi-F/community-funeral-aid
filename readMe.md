@@ -16,11 +16,11 @@ Below are key pages from the **Community Funeral Aid** platform showcasing the u
 
 | Dashboard | Add Beneficiary | Add Death Report | Add Community |
 |------------|----------------|------------------|
-| ![Dashboard](./client/src/assets/dashboard.png) | ![Add Beneficiary]("./client/src/assets/add beneficiary.png") | ![Add Death Report](./client/src/assets/add death report.png) | ![Add Community]("./client/src/assets/add community.png") |
+| ![Dashboard](./client/src/assets/dashboard.png) | ![Add Beneficiary](./client/src/assets/add%20beneficiary.png) | ![Add Death Report](./client/src/assets/add%20death%20report.png) | ![Add Community](./client/src/assets/add%20community.png)
 
 | Death Report List | Death Reports Page |
 |--------------------|--------------------|
-| ![Death Report List]("./client/src/assets/death reports list.png") | ![Death Reports Page]("./client/src/assets/death reports view.png") |
+| ![Death Report List](./client/src/assets/death%20reports%20list.png) | ![Death Reports Page](./client/src/assets/death%20reports%20view.png) |
 
 
 
